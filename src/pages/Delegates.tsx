@@ -11,7 +11,10 @@ import {
   ChevronRight,
   X,
   Save,
-  Edit2
+  Edit2,
+  Download,
+  Send,
+  Calendar
 } from 'lucide-react';
 import api from '../services/api';
 import type { Delegate, PaginatedResponse } from '../types';
@@ -21,17 +24,25 @@ import { cn } from '../utils';
 export default function Delegates() {
   const [page, setPage] = useState(1);
   const [keyword, setKeyword] = useState('');
+  const [year, setYear] = useState<string>('');
   const [selectedDelegate, setSelectedDelegate] = useState<Delegate | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [editForm, setEditForm] = useState({ name: '', email: '', phone: '' });
   const [tempPassword, setTempPassword] = useState<string | null>(null);
+  const [pushForm, setPushForm] = useState({ title: '', message: '' });
+  const [isSendingPush, setIsSendingPush] = useState(false);
   const queryClient = useQueryClient();
 
   const { data, isLoading, error } = useQuery<PaginatedResponse<Delegate, 'delegates'>>({
-    queryKey: ['delegates', page, keyword],
+    queryKey: ['delegates', page, keyword, year],
     queryFn: async () => {
       const response = await api.get('/admin/delegates', {
-        params: { page, per_page: 20, keyword }
+        params: { 
+          page, 
+          per_page: 20, 
+          keyword,
+          year: year || undefined
+        }
       });
       return response.data;
     },
@@ -84,6 +95,51 @@ export default function Delegates() {
     }
   };
 
+  const handleExportCSV = async () => {
+    try {
+      const token = localStorage.getItem('admin_token');
+      const response = await fetch('https://wpadocker-production.up.railway.app/api/v1/admin/delegates/export_csv', {
+        headers: {
+          'X-Admin-Token': token || ''
+        }
+      });
+      
+      if (!response.ok) throw new Error('Export failed');
+      
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `delegates_export_${new Date().toISOString().split('T')[0]}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    } catch (err) {
+      alert('Failed to export CSV. Please try again.');
+    }
+  };
+
+  const handleSendPush = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedDelegate || !pushForm.title || !pushForm.message) return;
+    
+    setIsSendingPush(true);
+    try {
+      await api.post('/admin/notifications/push', {
+        delegate_id: selectedDelegate.id,
+        title: pushForm.title,
+        message: pushForm.message
+      });
+      alert('Push notification sent successfully!');
+      setPushForm({ title: '', message: '' });
+    } catch (err: any) {
+      alert(err.response?.data?.error || 'Failed to send push notification. Ensure delegate has a device token.');
+    } finally {
+      setIsSendingPush(false);
+    }
+  };
+
   if (error) {
     return (
       <div className="p-8 bg-red-50 border border-red-100 rounded-2xl text-red-600">
@@ -99,19 +155,48 @@ export default function Delegates() {
           <h2 className="text-4xl font-bold text-zinc-900 tracking-tight font-display">Delegates Registry</h2>
           <p className="text-zinc-500 mt-2 font-medium">Manage and monitor all registered participants.</p>
         </div>
-        
-        <div className="relative w-full sm:w-96 group">
-          <Search className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-zinc-400 group-focus-within:text-zinc-900 transition-colors" />
-          <input
-            type="text"
-            placeholder="Search by name, email or company..."
-            value={keyword}
-            onChange={(e) => {
-              setKeyword(e.target.value);
-              setPage(1);
-            }}
-            className="w-full pl-14 pr-6 py-4 bg-white border border-zinc-200/60 rounded-3xl focus:ring-4 focus:ring-zinc-900/5 focus:border-zinc-900 outline-none transition-all shadow-sm font-medium"
-          />
+
+        <div className="flex flex-col sm:flex-row items-center gap-4">
+          <button
+            onClick={handleExportCSV}
+            className="w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-4 bg-white border border-zinc-200 rounded-3xl text-sm font-bold text-zinc-600 hover:bg-zinc-50 hover:shadow-md transition-all whitespace-nowrap"
+          >
+            <Download className="w-4 h-4" />
+            Export CSV
+          </button>
+
+          <div className="flex items-center gap-4 w-full sm:w-auto">
+            <div className="relative w-full sm:w-40 group">
+              <Calendar className="absolute left-5 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400 group-focus-within:text-zinc-900 transition-colors pointer-events-none" />
+              <select
+                value={year}
+                onChange={(e) => {
+                  setYear(e.target.value);
+                  setPage(1);
+                }}
+                className="w-full pl-12 pr-6 py-4 bg-white border border-zinc-200/60 rounded-3xl focus:ring-4 focus:ring-zinc-900/5 focus:border-zinc-900 outline-none transition-all shadow-sm font-bold text-sm appearance-none text-zinc-900"
+              >
+                <option value="">All Years</option>
+                <option value="2024">2024</option>
+                <option value="2025">2025</option>
+                <option value="2026">2026</option>
+              </select>
+            </div>
+            
+            <div className="relative flex-1 sm:w-80 group">
+              <Search className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-zinc-400 group-focus-within:text-zinc-900 transition-colors" />
+              <input
+                type="text"
+                placeholder="Search..."
+                value={keyword}
+                onChange={(e) => {
+                  setKeyword(e.target.value);
+                  setPage(1);
+                }}
+                className="w-full pl-14 pr-6 py-4 bg-white border border-zinc-200/60 rounded-3xl focus:ring-4 focus:ring-zinc-900/5 focus:border-zinc-900 outline-none transition-all shadow-sm font-medium"
+              />
+            </div>
+          </div>
         </div>
       </div>
 
@@ -343,20 +428,58 @@ export default function Delegates() {
                   </div>
 
                   {!isEditing && (
-                    <div className="grid grid-cols-2 gap-6">
-                      <div className="space-y-2">
-                        <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest ml-1">System Status</label>
-                        <div className="p-4 bg-zinc-50 rounded-2xl border border-zinc-100 flex items-center gap-2">
-                          <div className={cn("w-2 h-2 rounded-full", selectedDelegate.has_logged_in ? "bg-emerald-500" : "bg-zinc-300")} />
-                          <p className="text-sm font-bold text-zinc-900">{selectedDelegate.has_logged_in ? 'Active' : 'Inactive'}</p>
+                    <div className="space-y-6">
+                      <div className="grid grid-cols-2 gap-6">
+                        <div className="space-y-2">
+                          <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest ml-1">System Status</label>
+                          <div className="p-4 bg-zinc-50 rounded-2xl border border-zinc-100 flex items-center gap-2">
+                            <div className={cn("w-2 h-2 rounded-full", selectedDelegate.has_logged_in ? "bg-emerald-500" : "bg-zinc-300")} />
+                            <p className="text-sm font-bold text-zinc-900">{selectedDelegate.has_logged_in ? 'Active' : 'Inactive'}</p>
+                          </div>
+                        </div>
+                        <div className="space-y-2">
+                          <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest ml-1">Member Since</label>
+                          <div className="p-4 bg-zinc-50 rounded-2xl border border-zinc-100">
+                            <p className="text-sm font-bold text-zinc-900">
+                              {new Date(selectedDelegate.created_at).toLocaleDateString()}
+                            </p>
+                          </div>
                         </div>
                       </div>
-                      <div className="space-y-2">
-                        <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest ml-1">Member Since</label>
-                        <div className="p-4 bg-zinc-50 rounded-2xl border border-zinc-100">
-                          <p className="text-sm font-bold text-zinc-900">
-                            {new Date(selectedDelegate.created_at).toLocaleDateString()}
-                          </p>
+
+                      {/* Push Notification Section */}
+                      <div className="p-8 bg-zinc-900 rounded-[2rem] text-white space-y-6">
+                        <div className="flex items-center gap-3">
+                          <div className="p-2 bg-white/10 rounded-xl">
+                            <Send className="w-4 h-4 text-emerald-400" />
+                          </div>
+                          <h5 className="text-sm font-bold">Direct Push Notification</h5>
+                        </div>
+                        
+                        <div className="space-y-4">
+                          <input
+                            type="text"
+                            placeholder="Notification Title"
+                            value={pushForm.title}
+                            onChange={(e) => setPushForm({ ...pushForm, title: e.target.value })}
+                            className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-2xl text-sm font-medium outline-none focus:ring-2 focus:ring-emerald-500/50 transition-all placeholder:text-zinc-600"
+                          />
+                          <textarea
+                            placeholder="Message content..."
+                            value={pushForm.message}
+                            onChange={(e) => setPushForm({ ...pushForm, message: e.target.value })}
+                            rows={3}
+                            className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-2xl text-sm font-medium outline-none focus:ring-2 focus:ring-emerald-500/50 transition-all placeholder:text-zinc-600 resize-none"
+                          />
+                          <button
+                            type="button"
+                            onClick={handleSendPush}
+                            disabled={isSendingPush || !pushForm.title || !pushForm.message}
+                            className="w-full py-4 bg-emerald-500 text-white rounded-2xl font-bold hover:bg-emerald-600 disabled:opacity-30 disabled:hover:bg-emerald-500 transition-all flex items-center justify-center gap-2"
+                          >
+                            {isSendingPush ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                            Send Push Now
+                          </button>
                         </div>
                       </div>
                     </div>

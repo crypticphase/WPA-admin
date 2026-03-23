@@ -6,15 +6,20 @@ import {
   MessageSquare, 
   Bell,
   ArrowUpRight,
-  Loader2
+  Loader2,
+  Activity,
+  Cpu,
+  Database,
+  Zap,
+  Server
 } from 'lucide-react';
 import api from '../services/api';
-import type { DashboardStats } from '../types';
+import type { DashboardStats, SidekiqStatus, RedisStatus } from '../types';
 import { motion } from 'motion/react';
 import { cn } from '../utils';
 
 export default function Dashboard() {
-  const { data: stats, isLoading, error } = useQuery<DashboardStats>({
+  const { data: stats, isLoading: statsLoading, error: statsError } = useQuery<DashboardStats>({
     queryKey: ['dashboard-stats'],
     queryFn: async () => {
       const response = await api.get('/admin/dashboard');
@@ -22,7 +27,25 @@ export default function Dashboard() {
     },
   });
 
-  if (isLoading) {
+  const { data: sidekiq, isLoading: sidekiqLoading } = useQuery<SidekiqStatus>({
+    queryKey: ['sidekiq-status'],
+    queryFn: async () => {
+      const response = await api.get('/admin/maintenance/sidekiq_status');
+      return response.data;
+    },
+    refetchInterval: 30000,
+  });
+
+  const { data: redis, isLoading: redisLoading } = useQuery<RedisStatus>({
+    queryKey: ['redis-status'],
+    queryFn: async () => {
+      const response = await api.get('/admin/maintenance/redis_status');
+      return response.data;
+    },
+    refetchInterval: 60000,
+  });
+
+  if (statsLoading) {
     return (
       <div className="flex items-center justify-center h-64">
         <Loader2 className="w-8 h-8 animate-spin text-zinc-400" />
@@ -30,7 +53,7 @@ export default function Dashboard() {
     );
   }
 
-  if (error) {
+  if (statsError) {
     return (
       <div className="p-8 bg-red-50 border border-red-100 rounded-2xl text-red-600">
         Failed to load dashboard statistics. Please try again later.
@@ -95,28 +118,130 @@ export default function Dashboard() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <div className="lg:col-span-2 bg-white p-8 rounded-4xl border border-zinc-200/60 shadow-sm">
-          <div className="flex items-center justify-between mb-8">
-            <h3 className="text-2xl font-bold text-zinc-900 font-display">Service Health</h3>
-            <button className="text-xs font-bold text-zinc-400 uppercase tracking-widest hover:text-zinc-900 transition-colors">View Logs</button>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-            {[
-              { label: 'API Gateway', status: 'Operational', uptime: '99.9%' },
-              { label: 'WebSocket', status: 'Operational', uptime: '99.8%' },
-              { label: 'Database', status: 'Operational', uptime: '100%' },
-            ].map((service) => (
-              <div key={service.label} className="p-6 bg-zinc-50 rounded-3xl border border-zinc-100">
-                <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mb-4">{service.label}</p>
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-emerald-600 uppercase tracking-widest">{service.status}</span>
-                  <span className="text-xs font-mono text-zinc-400">{service.uptime}</span>
-                </div>
-                <div className="mt-4 h-1 w-full bg-zinc-200 rounded-full overflow-hidden">
-                  <div className="h-full bg-emerald-500 w-full" />
-                </div>
+        <div className="lg:col-span-2 space-y-8">
+          <div className="bg-white p-8 rounded-4xl border border-zinc-200/60 shadow-sm">
+            <div className="flex items-center justify-between mb-8">
+              <h3 className="text-2xl font-bold text-zinc-900 font-display">Service Health</h3>
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 rounded-full bg-emerald-500" />
+                <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">All Systems Operational</span>
               </div>
-            ))}
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+              {[
+                { label: 'API Gateway', status: 'Operational', uptime: '99.9%', icon: Server },
+                { label: 'WebSocket', status: 'Operational', uptime: '99.8%', icon: Zap },
+                { label: 'Database', status: 'Operational', uptime: '100%', icon: Database },
+              ].map((service) => (
+                <div key={service.label} className="p-6 bg-zinc-50 rounded-3xl border border-zinc-100">
+                  <div className="flex items-center justify-between mb-4">
+                    <service.icon className="w-4 h-4 text-zinc-400" />
+                    <span className="text-[10px] font-bold text-emerald-600 uppercase tracking-widest">{service.status}</span>
+                  </div>
+                  <p className="text-xs font-bold text-zinc-900 mb-1">{service.label}</p>
+                  <p className="text-[10px] font-mono text-zinc-400">{service.uptime} Uptime</p>
+                  <div className="mt-4 h-1 w-full bg-zinc-200 rounded-full overflow-hidden">
+                    <div className="h-full bg-emerald-500 w-full" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            {/* Sidekiq Status */}
+            <div className="bg-white p-8 rounded-4xl border border-zinc-200/60 shadow-sm">
+              <div className="flex items-center justify-between mb-8">
+                <div className="flex items-center gap-3">
+                  <div className="p-3 bg-purple-50 text-purple-600 rounded-xl">
+                    <Activity className="w-5 h-5" />
+                  </div>
+                  <h3 className="text-xl font-bold text-zinc-900 font-display">Sidekiq</h3>
+                </div>
+                {sidekiqLoading && <Loader2 className="w-4 h-4 animate-spin text-zinc-300" />}
+              </div>
+              
+              {sidekiq && (
+                <div className="space-y-6">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="p-4 bg-zinc-50 rounded-2xl border border-zinc-100">
+                      <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mb-1">Processed</p>
+                      <p className="text-lg font-bold text-zinc-900">{sidekiq.overview.processed.toLocaleString()}</p>
+                    </div>
+                    <div className="p-4 bg-zinc-50 rounded-2xl border border-zinc-100">
+                      <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mb-1">Enqueued</p>
+                      <p className="text-lg font-bold text-zinc-900">{sidekiq.overview.enqueued.toLocaleString()}</p>
+                    </div>
+                    <div className="p-4 bg-red-50 rounded-2xl border border-red-100">
+                      <p className="text-[10px] font-bold text-red-400 uppercase tracking-widest mb-1">Failed</p>
+                      <p className="text-lg font-bold text-red-600">{sidekiq.overview.failed.toLocaleString()}</p>
+                    </div>
+                    <div className="p-4 bg-orange-50 rounded-2xl border border-orange-100">
+                      <p className="text-[10px] font-bold text-orange-400 uppercase tracking-widest mb-1">Retry</p>
+                      <p className="text-lg font-bold text-orange-600">{sidekiq.overview.retry.toLocaleString()}</p>
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-3">
+                    <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Active Queues</p>
+                    {sidekiq.queues.map(q => (
+                      <div key={q.name} className="flex items-center justify-between p-3 bg-zinc-50 rounded-xl border border-zinc-100">
+                        <span className="text-xs font-bold text-zinc-600">{q.name}</span>
+                        <div className="flex items-center gap-3">
+                          <span className="text-[10px] font-mono text-zinc-400">Size: {q.size}</span>
+                          <span className="text-[10px] font-mono text-zinc-400">Lat: {q.latency}s</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Redis Status */}
+            <div className="bg-white p-8 rounded-4xl border border-zinc-200/60 shadow-sm">
+              <div className="flex items-center justify-between mb-8">
+                <div className="flex items-center gap-3">
+                  <div className="p-3 bg-red-50 text-red-600 rounded-xl">
+                    <Cpu className="w-5 h-5" />
+                  </div>
+                  <h3 className="text-xl font-bold text-zinc-900 font-display">Redis</h3>
+                </div>
+                {redisLoading && <Loader2 className="w-4 h-4 animate-spin text-zinc-300" />}
+              </div>
+
+              {redis && (
+                <div className="space-y-6">
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between py-3 border-b border-zinc-50">
+                      <span className="text-xs font-bold text-zinc-500 uppercase tracking-widest">Version</span>
+                      <span className="text-xs font-mono font-bold text-zinc-900">{redis.version}</span>
+                    </div>
+                    <div className="flex items-center justify-between py-3 border-b border-zinc-50">
+                      <span className="text-xs font-bold text-zinc-500 uppercase tracking-widest">Memory Used</span>
+                      <span className="text-xs font-mono font-bold text-zinc-900">{redis.memory_used}</span>
+                    </div>
+                    <div className="flex items-center justify-between py-3 border-b border-zinc-50">
+                      <span className="text-xs font-bold text-zinc-500 uppercase tracking-widest">Memory Peak</span>
+                      <span className="text-xs font-mono font-bold text-zinc-900">{redis.memory_peak}</span>
+                    </div>
+                    <div className="flex items-center justify-between py-3 border-b border-zinc-50">
+                      <span className="text-xs font-bold text-zinc-500 uppercase tracking-widest">Clients</span>
+                      <span className="text-xs font-mono font-bold text-zinc-900">{redis.connected_clients}</span>
+                    </div>
+                    <div className="flex items-center justify-between py-3">
+                      <span className="text-xs font-bold text-zinc-500 uppercase tracking-widest">Uptime</span>
+                      <span className="text-xs font-mono font-bold text-zinc-900">{(redis.uptime / 3600).toFixed(1)}h</span>
+                    </div>
+                  </div>
+                  
+                  <div className="p-4 bg-emerald-50 rounded-2xl border border-emerald-100 flex items-center gap-3">
+                    <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                    <p className="text-[10px] font-bold text-emerald-600 uppercase tracking-widest">Server Health: Excellent</p>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         </div>
 

@@ -38,11 +38,35 @@ export default function TablesTimeView() {
       if (!selectedDate && data.days?.length > 0) {
         setSelectedDate(data.days[0]);
       }
-      if (!selectedTime && data.times_today?.length > 0) {
-        setSelectedTime(data.times_today[0]);
+      
+      // Ensure selectedTime is valid for the current data
+      if (data.times_today?.length > 0) {
+        if (!selectedTime || !data.times_today.includes(selectedTime)) {
+          setSelectedTime(data.times_today[0]);
+        }
       }
     }
   }, [data, selectedDate, selectedTime]);
+
+  const formatTime = (timeStr: string) => {
+    if (!timeStr) return '';
+    try {
+      // Check if it's an ISO string or just a time string
+      if (timeStr.includes('T')) {
+        const date = new Date(timeStr);
+        if (!isNaN(date.getTime())) {
+          return date.toLocaleTimeString('en-US', { 
+            hour: '2-digit', 
+            minute: '2-digit', 
+            hour12: false 
+          });
+        }
+      }
+      return timeStr;
+    } catch {
+      return timeStr;
+    }
+  };
 
   if (error) {
     return (
@@ -79,7 +103,10 @@ export default function TablesTimeView() {
                 {data?.days?.map((day) => (
                   <button
                     key={day}
-                    onClick={() => setSelectedDate(day)}
+                    onClick={() => {
+                      setSelectedDate(day);
+                      setSelectedTime(''); // Reset time so it can be re-initialized for the new date
+                    }}
                     className={cn(
                       "px-4 py-2.5 rounded-xl text-sm font-medium text-left transition-all",
                       selectedDate === day 
@@ -110,7 +137,7 @@ export default function TablesTimeView() {
                         : "bg-zinc-50 text-zinc-600 hover:bg-zinc-100"
                     )}
                   >
-                    {time}
+                    {formatTime(time)}
                   </button>
                 ))}
               </div>

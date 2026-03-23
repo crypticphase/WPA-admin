@@ -156,6 +156,49 @@ export interface ConnectionRequest {
   };
 }
 
+export interface SidekiqStatus {
+  overview: {
+    processed: number;
+    failed: number;
+    enqueued: number;
+    retry: number;
+    dead: number;
+  };
+  queues: {
+    name: string;
+    size: number;
+    latency: number;
+  }[];
+}
+
+export interface RedisStatus {
+  version: string;
+  uptime: number;
+  connected_clients: number;
+  memory_used: string;
+  memory_peak: string;
+}
+
+export interface Connection {
+  id: number;
+  status: 'pending' | 'accepted' | 'rejected';
+  requester: {
+    id: number;
+    name: string;
+    email: string;
+    company: string;
+    avatar_url: string;
+  };
+  target: {
+    id: number;
+    name: string;
+    email: string;
+    company: string;
+    avatar_url: string;
+  };
+  created_at: string;
+}
+
 export interface PaginatedResponse<T, K extends string> {
   total: number;
   page: number;

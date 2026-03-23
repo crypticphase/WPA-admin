@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { 
   Share2, 
   Loader2,
@@ -11,26 +11,48 @@ import {
   CheckCircle2,
   XCircle,
   Clock,
-  ArrowRight
+  ArrowRight,
+  Trash2
 } from 'lucide-react';
 import api from '../services/api';
-import type { ConnectionRequest, PaginatedResponse } from '../types';
+import type { Connection, PaginatedResponse } from '../types';
 import { motion } from 'motion/react';
 import { cn } from '../utils';
 
 export default function ConnectionRequests() {
   const [page, setPage] = useState(1);
   const [status, setStatus] = useState<string>('');
+  const queryClient = useQueryClient();
 
-  const { data, isLoading, error } = useQuery<PaginatedResponse<ConnectionRequest, 'requests'>>({
-    queryKey: ['connection-requests', page, status],
+  const { data, isLoading, error } = useQuery<PaginatedResponse<Connection, 'connections'>>({
+    queryKey: ['connections', page, status],
     queryFn: async () => {
-      const response = await api.get('/admin/connection_requests', {
+      const response = await api.get('/admin/connections', {
         params: { page, per_page: 50, status }
       });
       return response.data;
     },
   });
+
+  const deleteConnectionMutation = useMutation({
+    mutationFn: async (id: number) => {
+      const response = await api.delete(`/admin/connections/${id}`);
+      return response.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['connections'] });
+      alert('Connection deleted successfully!');
+    },
+    onError: (err: any) => {
+      alert(err.response?.data?.error || 'Failed to delete connection.');
+    }
+  });
+
+  const handleDelete = (id: number) => {
+    if (confirm('Are you sure you want to delete this connection? This will also remove the associated request.')) {
+      deleteConnectionMutation.mutate(id);
+    }
+  };
 
   if (error) {
     return (
@@ -84,28 +106,29 @@ export default function ConnectionRequests() {
                 <th className="px-6 py-4 text-center text-xs font-bold text-zinc-500 uppercase tracking-widest">Direction</th>
                 <th className="px-6 py-4 text-xs font-bold text-zinc-500 uppercase tracking-widest">Target</th>
                 <th className="px-6 py-4 text-xs font-bold text-zinc-500 uppercase tracking-widest">Status</th>
+                <th className="px-6 py-4 text-xs font-bold text-zinc-500 uppercase tracking-widest text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-zinc-100">
               {isLoading ? (
                 <tr>
-                  <td colSpan={5} className="px-6 py-12 text-center">
+                  <td colSpan={6} className="px-6 py-12 text-center">
                     <Loader2 className="w-8 h-8 animate-spin text-zinc-300 mx-auto" />
                   </td>
                 </tr>
-              ) : data?.requests?.length === 0 ? (
+              ) : data?.connections?.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="px-6 py-12 text-center text-zinc-500">
-                    No connection requests found matching your filters.
+                  <td colSpan={6} className="px-6 py-12 text-center text-zinc-500">
+                    No connections found matching your filters.
                   </td>
                 </tr>
               ) : (
-                data?.requests?.map((request, index) => (
-                  <tr key={request.id} className="hover:bg-zinc-50 transition-colors group">
+                data?.connections?.map((connection, index) => (
+                  <tr key={connection.id} className="hover:bg-zinc-50 transition-colors group">
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center gap-2 text-xs font-medium text-zinc-500">
                         <Calendar className="w-3 h-3" />
-                        {new Date(request.created_at).toLocaleString()}
+                        {new Date(connection.created_at).toLocaleString()}
                       </div>
                     </td>
                     <td className="px-6 py-4">
@@ -114,8 +137,8 @@ export default function ConnectionRequests() {
                           <User className="w-3 h-3" />
                         </div>
                         <div>
-                          <p className="text-xs font-bold text-zinc-900">{request.requester.name}</p>
-                          <p className="text-[10px] text-zinc-400">{request.requester.email}</p>
+                          <p className="text-xs font-bold text-zinc-900">{connection.requester.name}</p>
+                          <p className="text-[10px] text-zinc-400">{connection.requester.email}</p>
                         </div>
                       </div>
                     </td>
@@ -128,20 +151,30 @@ export default function ConnectionRequests() {
                           <User className="w-3 h-3" />
                         </div>
                         <div>
-                          <p className="text-xs font-bold text-zinc-900">{request.target.name}</p>
-                          <p className="text-[10px] text-zinc-400">{request.target.email}</p>
+                          <p className="text-xs font-bold text-zinc-900">{connection.target.name}</p>
+                          <p className="text-[10px] text-zinc-400">{connection.target.email}</p>
                         </div>
                       </div>
                     </td>
                     <td className="px-6 py-4">
                       <span className={cn(
                         "text-[10px] font-bold px-2.5 py-1 rounded-full uppercase tracking-wider",
-                        request.status === 'accepted' ? "bg-emerald-50 text-emerald-600" :
-                        request.status === 'rejected' ? "bg-rose-50 text-rose-600" :
+                        connection.status === 'accepted' ? "bg-emerald-50 text-emerald-600" :
+                        connection.status === 'rejected' ? "bg-rose-50 text-rose-600" :
                         "bg-orange-50 text-orange-600"
                       )}>
-                        {request.status}
+                        {connection.status}
                       </span>
+                    </td>
+                    <td className="px-6 py-4 text-right">
+                      <button
+                        onClick={() => handleDelete(connection.id)}
+                        disabled={deleteConnectionMutation.isPending}
+                        className="p-2 text-zinc-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all opacity-0 group-hover:opacity-100"
+                        title="Delete Connection"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
                     </td>
                   </tr>
                 ))

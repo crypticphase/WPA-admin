@@ -59,6 +59,38 @@ export default function Notifications() {
     }
   });
 
+  const markReadMutation = useMutation({
+    mutationFn: async (id: number) => {
+      const response = await api.patch(`/admin/notifications/${id}/mark_read`);
+      return response.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['notifications'] });
+    },
+    onError: (err: any) => {
+      alert(err.response?.data?.error || 'Failed to mark notification as read.');
+    }
+  });
+
+  const markAllReadMutation = useMutation({
+    mutationFn: async () => {
+      const response = await api.patch('/admin/notifications/mark_all_read', {}, {
+        params: { 
+          delegate_id: delegateId || undefined,
+          type: type || undefined
+        }
+      });
+      return response.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['notifications'] });
+      alert('All matching notifications marked as read!');
+    },
+    onError: (err: any) => {
+      alert(err.response?.data?.error || 'Failed to mark notifications as read.');
+    }
+  });
+
   const clearAllNotificationsMutation = useMutation({
     mutationFn: async () => {
       const response = await api.delete('/admin/notifications', {
@@ -169,6 +201,19 @@ export default function Notifications() {
             </button>
 
             <button
+              onClick={() => markAllReadMutation.mutate()}
+              disabled={markAllReadMutation.isPending}
+              className="flex-1 lg:flex-none px-8 py-4 bg-emerald-50 text-emerald-600 rounded-2xl text-xs font-bold hover:bg-emerald-100 transition-all flex items-center justify-center gap-3 disabled:opacity-50 uppercase tracking-widest border border-emerald-100"
+            >
+              {markAllReadMutation.isPending ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <CheckCircle2 className="w-4 h-4" />
+              )}
+              Mark All Read
+            </button>
+
+            <button
               onClick={handleClearAll}
               disabled={clearAllNotificationsMutation.isPending}
               className="flex-1 lg:flex-none px-8 py-4 bg-red-50 text-red-600 rounded-2xl text-xs font-bold hover:bg-red-100 transition-all flex items-center justify-center gap-3 disabled:opacity-50 uppercase tracking-widest border border-red-100"
@@ -265,13 +310,25 @@ export default function Notifications() {
                       </span>
                     </td>
                     <td className="px-8 py-6 text-right">
-                      <button
-                        onClick={() => handleDelete(notification.id)}
-                        className="p-3 text-zinc-300 hover:text-red-500 hover:bg-red-50 rounded-2xl transition-all opacity-0 group-hover:opacity-100"
-                        title="Delete Notification"
-                      >
-                        <Trash2 className="w-5 h-5" />
-                      </button>
+                      <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-all">
+                        {!notification.is_read && (
+                          <button
+                            onClick={() => markReadMutation.mutate(notification.id)}
+                            disabled={markReadMutation.isPending}
+                            className="p-3 text-zinc-300 hover:text-emerald-500 hover:bg-emerald-50 rounded-2xl transition-all"
+                            title="Mark as Read"
+                          >
+                            <CheckCircle2 className="w-5 h-5" />
+                          </button>
+                        )}
+                        <button
+                          onClick={() => handleDelete(notification.id)}
+                          className="p-3 text-zinc-300 hover:text-red-500 hover:bg-red-50 rounded-2xl transition-all"
+                          title="Delete Notification"
+                        >
+                          <Trash2 className="w-5 h-5" />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))

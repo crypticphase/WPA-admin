@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useMutation } from '@tanstack/react-query';
+import { useMutation, useQuery } from '@tanstack/react-query';
 import { 
   Settings, 
   Trash2, 
@@ -9,13 +9,36 @@ import {
   MessageSquare,
   History,
   Database,
-  RefreshCw
+  RefreshCw,
+  Cpu,
+  Server,
+  Activity,
+  Zap
 } from 'lucide-react';
 import api from '../services/api';
 import { cn } from '../utils';
+import type { SidekiqStatus, RedisStatus } from '../types';
 
 export default function Maintenance() {
   const [isConfirming, setIsConfirming] = useState<string | null>(null);
+
+  const { data: sidekiq, isLoading: sidekiqLoading } = useQuery<SidekiqStatus>({
+    queryKey: ['sidekiq-status'],
+    queryFn: async () => {
+      const response = await api.get('/admin/maintenance/sidekiq_status');
+      return response.data;
+    },
+    refetchInterval: 30000,
+  });
+
+  const { data: redis, isLoading: redisLoading } = useQuery<RedisStatus>({
+    queryKey: ['redis-status'],
+    queryFn: async () => {
+      const response = await api.get('/admin/maintenance/redis_status');
+      return response.data;
+    },
+    refetchInterval: 60000,
+  });
 
   const resetMutation = useMutation({
     mutationFn: async (type: string) => {
@@ -85,6 +108,130 @@ export default function Maintenance() {
         <div>
           <h2 className="text-4xl font-bold text-zinc-900 tracking-tight font-display">System Maintenance</h2>
           <p className="text-zinc-500 mt-2 font-medium">Manage system data, clear caches, and perform administrative resets.</p>
+        </div>
+      </div>
+
+      {/* System Health Overview */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+        {/* Sidekiq Status Card */}
+        <div className="bg-white p-8 rounded-[2.5rem] border border-zinc-200/60 shadow-sm premium-shadow overflow-hidden relative group">
+          <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:opacity-10 transition-opacity">
+            <Zap className="w-32 h-32 text-purple-500" />
+          </div>
+          <div className="relative z-10">
+            <div className="flex items-center justify-between mb-8">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 bg-purple-50 text-purple-500 rounded-xl flex items-center justify-center shadow-sm">
+                  <Activity className="w-6 h-6" />
+                </div>
+                <div>
+                  <h3 className="text-xl font-bold text-zinc-900 font-display">Sidekiq Queues</h3>
+                  <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Background Jobs</p>
+                </div>
+              </div>
+              {sidekiqLoading ? (
+                <Loader2 className="w-5 h-5 animate-spin text-zinc-300" />
+              ) : (
+                <div className="flex items-center gap-2 px-3 py-1 bg-emerald-50 text-emerald-600 rounded-full text-[10px] font-bold uppercase tracking-widest border border-emerald-100">
+                  <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse" />
+                  Live
+                </div>
+              )}
+            </div>
+
+            {sidekiq && (
+              <div className="space-y-6">
+                <div className="grid grid-cols-3 gap-4">
+                  <div className="p-4 bg-zinc-50 rounded-2xl border border-zinc-100">
+                    <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mb-1">Processed</p>
+                    <p className="text-lg font-bold text-zinc-900">{sidekiq.overview.processed.toLocaleString()}</p>
+                  </div>
+                  <div className="p-4 bg-zinc-50 rounded-2xl border border-zinc-100">
+                    <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mb-1">Failed</p>
+                    <p className="text-lg font-bold text-red-600">{sidekiq.overview.failed.toLocaleString()}</p>
+                  </div>
+                  <div className="p-4 bg-zinc-50 rounded-2xl border border-zinc-100">
+                    <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mb-1">Enqueued</p>
+                    <p className="text-lg font-bold text-purple-600">{sidekiq.overview.enqueued.toLocaleString()}</p>
+                  </div>
+                </div>
+
+                <div className="space-y-3">
+                  {sidekiq.queues.map(q => (
+                    <div key={q.name} className="flex items-center justify-between p-3 bg-zinc-50/50 rounded-xl border border-zinc-100/50">
+                      <div className="flex items-center gap-3">
+                        <div className="w-2 h-2 bg-purple-400 rounded-full" />
+                        <span className="text-xs font-bold text-zinc-700 uppercase tracking-widest">{q.name}</span>
+                      </div>
+                      <div className="flex items-center gap-4">
+                        <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Size: {q.size}</span>
+                        <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Latency: {q.latency}s</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Redis Status Card */}
+        <div className="bg-white p-8 rounded-[2.5rem] border border-zinc-200/60 shadow-sm premium-shadow overflow-hidden relative group">
+          <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:opacity-10 transition-opacity">
+            <Server className="w-32 h-32 text-red-500" />
+          </div>
+          <div className="relative z-10">
+            <div className="flex items-center justify-between mb-8">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 bg-red-50 text-red-500 rounded-xl flex items-center justify-center shadow-sm">
+                  <Cpu className="w-6 h-6" />
+                </div>
+                <div>
+                  <h3 className="text-xl font-bold text-zinc-900 font-display">Redis Server</h3>
+                  <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Cache & Session</p>
+                </div>
+              </div>
+              {redisLoading ? (
+                <Loader2 className="w-5 h-5 animate-spin text-zinc-300" />
+              ) : (
+                <div className="flex items-center gap-2 px-3 py-1 bg-emerald-50 text-emerald-600 rounded-full text-[10px] font-bold uppercase tracking-widest border border-emerald-100">
+                  <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse" />
+                  Stable
+                </div>
+              )}
+            </div>
+
+            {redis && (
+              <div className="space-y-6">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="p-4 bg-zinc-50 rounded-2xl border border-zinc-100">
+                    <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mb-1">Memory Used</p>
+                    <p className="text-lg font-bold text-zinc-900">{redis.memory_used}</p>
+                  </div>
+                  <div className="p-4 bg-zinc-50 rounded-2xl border border-zinc-100">
+                    <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mb-1">Peak Memory</p>
+                    <p className="text-lg font-bold text-zinc-900">{redis.memory_peak}</p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="p-4 bg-zinc-50 rounded-2xl border border-zinc-100">
+                    <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mb-1">Clients</p>
+                    <p className="text-lg font-bold text-zinc-900">{redis.connected_clients}</p>
+                  </div>
+                  <div className="p-4 bg-zinc-50 rounded-2xl border border-zinc-100">
+                    <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mb-1">Uptime</p>
+                    <p className="text-lg font-bold text-zinc-900">{redis.uptime}s</p>
+                  </div>
+                </div>
+
+                <div className="p-3 bg-zinc-50/50 rounded-xl border border-zinc-100/50 flex items-center justify-between">
+                  <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Redis Version</span>
+                  <span className="text-xs font-bold text-zinc-700">{redis.version}</span>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
