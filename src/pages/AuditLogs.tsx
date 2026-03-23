@@ -8,7 +8,9 @@ import {
   Activity,
   Calendar,
   Filter,
-  Search
+  Search,
+  Globe,
+  Database
 } from 'lucide-react';
 import { useState } from 'react';
 import api from '../services/api';
@@ -18,14 +20,14 @@ import { cn } from '../utils';
 
 export default function AuditLogs() {
   const [page, setPage] = useState(1);
-  const [action, setAction] = useState<string>('');
+  const [logAction, setLogAction] = useState<string>('');
   const [delegateId, setDelegateId] = useState<string>('');
 
   const { data, isLoading, error } = useQuery<PaginatedResponse<AuditLog, 'logs'>>({
-    queryKey: ['audit-logs', page, action, delegateId],
+    queryKey: ['audit-logs', page, logAction, delegateId],
     queryFn: async () => {
       const response = await api.get('/admin/audit_logs', {
-        params: { page, per_page: 50, action, delegate_id: delegateId }
+        params: { page, per_page: 50, log_action: logAction, delegate_id: delegateId }
       });
       return response.data;
     },
@@ -43,10 +45,21 @@ export default function AuditLogs() {
     { id: '', label: 'All Actions' },
     { id: 'login', label: 'Login' },
     { id: 'logout', label: 'Logout' },
-    { id: 'reset_password', label: 'Reset Password' },
-    { id: 'send_announcement', label: 'Send Announcement' },
-    { id: 'approve_leave', label: 'Approve Leave' },
-    { id: 'reject_leave', label: 'Reject Leave' },
+    { id: 'password_change', label: 'Password Change' },
+    { id: 'password_reset_request', label: 'Reset Request' },
+    { id: 'password_reset_success', label: 'Reset Success' },
+    { id: 'password_reset_failed', label: 'Reset Failed' },
+    { id: 'message_create', label: 'Message Create' },
+    { id: 'message_update', label: 'Message Update' },
+    { id: 'message_delete', label: 'Message Delete' },
+    { id: 'connection_request_create', label: 'Connection Create' },
+    { id: 'connection_request_accept', label: 'Connection Accept' },
+    { id: 'connection_request_reject', label: 'Connection Reject' },
+    { id: 'room_create', label: 'Room Create' },
+    { id: 'room_delete', label: 'Room Delete' },
+    { id: 'room_join', label: 'Room Join' },
+    { id: 'room_leave', label: 'Room Leave' },
+    { id: 'device_token_update', label: 'Device Token Update' },
   ];
 
   return (
@@ -62,9 +75,9 @@ export default function AuditLogs() {
         <div className="relative flex-1 w-full">
           <Filter className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400" />
           <select
-            value={action}
+            value={logAction}
             onChange={(e) => {
-              setAction(e.target.value);
+              setLogAction(e.target.value);
               setPage(1);
             }}
             className="w-full pl-11 pr-4 py-3 bg-zinc-50 border border-zinc-200 rounded-2xl focus:ring-2 focus:ring-zinc-900 focus:border-transparent outline-none transition-all appearance-none text-sm font-medium"
@@ -98,19 +111,20 @@ export default function AuditLogs() {
                 <th className="px-6 py-4 text-xs font-bold text-zinc-500 uppercase tracking-widest">Timestamp</th>
                 <th className="px-6 py-4 text-xs font-bold text-zinc-500 uppercase tracking-widest">Action</th>
                 <th className="px-6 py-4 text-xs font-bold text-zinc-500 uppercase tracking-widest">Delegate</th>
-                <th className="px-6 py-4 text-xs font-bold text-zinc-500 uppercase tracking-widest">Details</th>
+                <th className="px-6 py-4 text-xs font-bold text-zinc-500 uppercase tracking-widest">Type</th>
+                <th className="px-6 py-4 text-xs font-bold text-zinc-500 uppercase tracking-widest">IP Address</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-zinc-100">
               {isLoading ? (
                 <tr>
-                  <td colSpan={4} className="px-6 py-12 text-center">
+                  <td colSpan={5} className="px-6 py-12 text-center">
                     <Loader2 className="w-8 h-8 animate-spin text-zinc-300 mx-auto" />
                   </td>
                 </tr>
               ) : data?.logs?.length === 0 ? (
                 <tr>
-                  <td colSpan={4} className="px-6 py-12 text-center text-zinc-500">
+                  <td colSpan={5} className="px-6 py-12 text-center text-zinc-500">
                     No audit logs found matching your filters.
                   </td>
                 </tr>
@@ -126,33 +140,43 @@ export default function AuditLogs() {
                     <td className="px-6 py-4">
                       <span className={cn(
                         "text-[10px] font-bold px-2.5 py-1 rounded-full uppercase tracking-wider",
-                        log.action.includes('reset') ? "bg-red-50 text-red-600" :
-                        log.action.includes('approve') ? "bg-emerald-50 text-emerald-600" :
+                        log.action.includes('failed') || log.action.includes('reject') || log.action.includes('delete') ? "bg-red-50 text-red-600" :
+                        log.action.includes('success') || log.action.includes('accept') || log.action.includes('create') ? "bg-emerald-50 text-emerald-600" :
                         log.action.includes('login') ? "bg-blue-50 text-blue-600" :
                         "bg-zinc-100 text-zinc-500"
                       )}>
-                        {log.action.replace('_', ' ')}
+                        {log.action.replace(/_/g, ' ')}
                       </span>
                     </td>
                     <td className="px-6 py-4">
-                      {log.delegate_id ? (
+                      {log.delegate ? (
                         <div className="flex items-center gap-2">
                           <div className="w-6 h-6 bg-zinc-100 rounded-lg flex items-center justify-center text-zinc-400">
                             <User className="w-3 h-3" />
                           </div>
                           <div>
-                            <p className="text-xs font-bold text-zinc-900">{log.delegate_name}</p>
-                            <p className="text-[10px] text-zinc-400">ID: #{log.delegate_id}</p>
+                            <p className="text-xs font-bold text-zinc-900">{log.delegate.name}</p>
+                            <p className="text-[10px] text-zinc-400">ID: #{log.delegate.id}</p>
                           </div>
                         </div>
                       ) : (
-                        <span className="text-xs font-bold text-zinc-400 uppercase tracking-widest">System / Admin</span>
+                        <span className="text-xs font-bold text-zinc-400 uppercase tracking-widest">System / Unknown</span>
                       )}
                     </td>
                     <td className="px-6 py-4">
-                      <p className="text-xs text-zinc-600 font-medium leading-relaxed max-w-md truncate group-hover:whitespace-normal group-hover:overflow-visible transition-all">
-                        {log.details}
-                      </p>
+                      <div className="flex items-center gap-2">
+                        <Database className="w-3 h-3 text-zinc-400" />
+                        <span className="text-xs font-medium text-zinc-600">{log.auditable_type}</span>
+                        {log.auditable_id && (
+                          <span className="text-[10px] text-zinc-400 font-mono">#{log.auditable_id}</span>
+                        )}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="flex items-center gap-2 text-xs text-zinc-500 font-mono">
+                        <Globe className="w-3 h-3" />
+                        {log.ip_address}
+                      </div>
                     </td>
                   </tr>
                 ))

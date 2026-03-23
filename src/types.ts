@@ -82,10 +82,14 @@ export interface GroupChat {
 export interface AuditLog {
   id: number;
   action: string;
-  delegate_id?: number;
-  delegate_name?: string;
-  details: string;
+  auditable_type: string;
+  auditable_id: number | null;
+  ip_address: string;
   created_at: string;
+  delegate: {
+    id: number;
+    name: string;
+  } | null;
 }
 
 export interface SecurityLog {
