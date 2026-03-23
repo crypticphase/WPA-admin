@@ -19,11 +19,19 @@ import { cn } from '../utils';
 export default function DirectMessages() {
   const [selectedRoom, setSelectedRoom] = useState<DirectChatRoom | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const [page, setPage] = useState(1);
 
-  const { data: roomsData, isLoading: isLoadingRooms } = useQuery<{ rooms: DirectChatRoom[] }>({
-    queryKey: ['direct-chat-rooms'],
+  const { data: roomsData, isLoading: isLoadingRooms } = useQuery<{ 
+    rooms: DirectChatRoom[];
+    total: number;
+    total_pages: number;
+    page: number;
+  }>({
+    queryKey: ['direct-chat-rooms', page],
     queryFn: async () => {
-      const response = await api.get('/admin/messages/rooms');
+      const response = await api.get('/admin/messages/rooms', {
+        params: { page, per_page: 20 }
+      });
       return response.data;
     },
   });
@@ -143,6 +151,29 @@ export default function DirectMessages() {
               })
             )}
           </div>
+
+          {/* Pagination Controls */}
+          {roomsData && roomsData.total_pages > 1 && (
+            <div className="flex items-center justify-between px-2 py-2 border-t border-zinc-100 pt-4">
+              <button
+                onClick={() => setPage(p => Math.max(1, p - 1))}
+                disabled={page === 1}
+                className="p-2 rounded-xl hover:bg-zinc-100 disabled:opacity-30 disabled:hover:bg-transparent transition-colors"
+              >
+                <ChevronRight className="w-4 h-4 rotate-180" />
+              </button>
+              <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">
+                Page {page} of {roomsData.total_pages}
+              </span>
+              <button
+                onClick={() => setPage(p => Math.min(roomsData.total_pages, p + 1))}
+                disabled={page === roomsData.total_pages}
+                className="p-2 rounded-xl hover:bg-zinc-100 disabled:opacity-30 disabled:hover:bg-transparent transition-colors"
+              >
+                <ChevronRight className="w-4 h-4" />
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Conversation Area */}
