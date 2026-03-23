@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { 
   Bell, 
   Loader2,
@@ -14,7 +14,9 @@ import {
   Clock,
   MessageSquare,
   Megaphone,
-  FileText
+  FileText,
+  Trash2,
+  Trash
 } from 'lucide-react';
 import api from '../services/api';
 import type { Notification, PaginatedResponse } from '../types';
@@ -26,6 +28,7 @@ export default function Notifications() {
   const [type, setType] = useState<string>('');
   const [delegateId, setDelegateId] = useState<string>('');
   const [unreadOnly, setUnreadOnly] = useState<boolean>(false);
+  const queryClient = useQueryClient();
 
   const { data, isLoading, error } = useQuery<PaginatedResponse<Notification, 'notifications'>>({
     queryKey: ['notifications', page, type, delegateId, unreadOnly],
@@ -42,6 +45,55 @@ export default function Notifications() {
       return response.data;
     },
   });
+
+  const deleteNotificationMutation = useMutation({
+    mutationFn: async (id: number) => {
+      const response = await api.delete(`/admin/notifications/${id}`);
+      return response.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['notifications'] });
+    },
+    onError: (err: any) => {
+      alert(err.response?.data?.error || 'Failed to delete notification.');
+    }
+  });
+
+  const clearAllNotificationsMutation = useMutation({
+    mutationFn: async () => {
+      const response = await api.delete('/admin/notifications', {
+        params: { 
+          delegate_id: delegateId || undefined,
+          type: type || undefined
+        }
+      });
+      return response.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['notifications'] });
+      alert('Notifications cleared successfully!');
+    },
+    onError: (err: any) => {
+      alert(err.response?.data?.error || 'Failed to clear notifications.');
+    }
+  });
+
+  const handleDelete = (id: number) => {
+    if (confirm('Are you sure you want to delete this notification?')) {
+      deleteNotificationMutation.mutate(id);
+    }
+  };
+
+  const handleClearAll = () => {
+    const filterDesc = [
+      delegateId ? `for Delegate #${delegateId}` : '',
+      type ? `of type ${type}` : ''
+    ].filter(Boolean).join(' ');
+
+    if (confirm(`Are you sure you want to delete ALL notifications ${filterDesc}? This action cannot be undone.`)) {
+      clearAllNotificationsMutation.mutate();
+    }
+  };
 
   if (error) {
     return (
@@ -114,6 +166,19 @@ export default function Notifications() {
           >
             Unread Only
           </button>
+
+          <button
+            onClick={handleClearAll}
+            disabled={clearAllNotificationsMutation.isPending}
+            className="px-6 py-3 bg-red-50 text-red-600 rounded-2xl text-sm font-bold hover:bg-red-100 transition-all flex items-center gap-2 disabled:opacity-50"
+          >
+            {clearAllNotificationsMutation.isPending ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <Trash className="w-4 h-4" />
+            )}
+            Clear All
+          </button>
         </div>
       </div>
 
@@ -126,18 +191,19 @@ export default function Notifications() {
                 <th className="px-6 py-4 text-xs font-bold text-zinc-500 uppercase tracking-widest">Type</th>
                 <th className="px-6 py-4 text-xs font-bold text-zinc-500 uppercase tracking-widest">Delegate</th>
                 <th className="px-6 py-4 text-xs font-bold text-zinc-500 uppercase tracking-widest">Status</th>
+                <th className="px-6 py-4 text-xs font-bold text-zinc-500 uppercase tracking-widest text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-zinc-100">
               {isLoading ? (
                 <tr>
-                  <td colSpan={4} className="px-6 py-12 text-center">
+                  <td colSpan={5} className="px-6 py-12 text-center">
                     <Loader2 className="w-8 h-8 animate-spin text-zinc-300 mx-auto" />
                   </td>
                 </tr>
               ) : data?.notifications?.length === 0 ? (
                 <tr>
-                  <td colSpan={4} className="px-6 py-12 text-center text-zinc-500">
+                  <td colSpan={5} className="px-6 py-12 text-center text-zinc-500">
                     No notifications found matching your filters.
                   </td>
                 </tr>
@@ -178,6 +244,15 @@ export default function Notifications() {
                       )}>
                         {notification.is_read ? 'Read' : 'Unread'}
                       </span>
+                    </td>
+                    <td className="px-6 py-4 text-right">
+                      <button
+                        onClick={() => handleDelete(notification.id)}
+                        className="p-2 text-zinc-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
+                        title="Delete Notification"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
                     </td>
                   </tr>
                 ))

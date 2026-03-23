@@ -7,7 +7,8 @@ import {
   ChevronLeft,
   ChevronRight,
   Clock,
-  User
+  User,
+  Trash2
 } from 'lucide-react';
 import api from '../services/api';
 import type { Announcement, PaginatedResponse } from '../types';
@@ -47,6 +48,25 @@ export default function Announcements() {
       setIsSending(false);
     }
   });
+
+  const deleteAnnouncementMutation = useMutation({
+    mutationFn: async (id: number) => {
+      const response = await api.delete(`/admin/announcements/${id}`);
+      return response.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['announcements'] });
+    },
+    onError: (err: any) => {
+      alert(err.response?.data?.error || 'Failed to delete announcement.');
+    }
+  });
+
+  const handleDelete = (id: number) => {
+    if (confirm('Are you sure you want to delete this announcement? This will remove it from the database.')) {
+      deleteAnnouncementMutation.mutate(id);
+    }
+  };
 
   const handleSend = (e: React.FormEvent) => {
     e.preventDefault();
@@ -154,11 +174,20 @@ export default function Announcements() {
                       </div>
                       <span className="text-sm font-bold text-zinc-900">Admin</span>
                     </div>
-                    <div className="flex items-center gap-2 text-zinc-400">
-                      <Clock className="w-4 h-4" />
-                      <span className="text-xs font-medium">
-                        {new Date(announcement.sent_at).toLocaleString()}
-                      </span>
+                    <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-2 text-zinc-400">
+                        <Clock className="w-4 h-4" />
+                        <span className="text-xs font-medium">
+                          {new Date(announcement.sent_at).toLocaleString()}
+                        </span>
+                      </div>
+                      <button
+                        onClick={() => handleDelete(announcement.id)}
+                        className="p-2 text-zinc-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
+                        title="Delete Announcement"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
                     </div>
                   </div>
                   <p className="text-zinc-600 text-sm leading-relaxed whitespace-pre-wrap">

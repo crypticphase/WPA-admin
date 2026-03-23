@@ -44,6 +44,7 @@ export interface Delegate {
     id: number;
     name: string;
   };
+  created_at: string;
 }
 
 export interface Announcement {

@@ -1,3 +1,4 @@
+import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { 
   Search, 
@@ -8,9 +9,10 @@ import {
   Loader2,
   ChevronLeft,
   ChevronRight,
-  X
+  X,
+  Save,
+  Edit2
 } from 'lucide-react';
-import { useState } from 'react';
 import api from '../services/api';
 import type { Delegate, PaginatedResponse } from '../types';
 import { motion, AnimatePresence } from 'motion/react';
@@ -20,6 +22,8 @@ export default function Delegates() {
   const [page, setPage] = useState(1);
   const [keyword, setKeyword] = useState('');
   const [selectedDelegate, setSelectedDelegate] = useState<Delegate | null>(null);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editForm, setEditForm] = useState({ name: '', email: '', phone: '' });
   const [tempPassword, setTempPassword] = useState<string | null>(null);
   const queryClient = useQueryClient();
 
@@ -42,6 +46,37 @@ export default function Delegates() {
       setTempPassword(password);
     },
   });
+
+  const updateDelegateMutation = useMutation({
+    mutationFn: async ({ id, data }: { id: number; data: any }) => {
+      const response = await api.patch(`/admin/delegates/${id}`, data);
+      return response.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['delegates'] });
+      setIsEditing(false);
+      setSelectedDelegate(null);
+    },
+    onError: (err: any) => {
+      alert(err.response?.data?.error || 'Failed to update delegate.');
+    }
+  });
+
+  const handleEdit = (delegate: Delegate) => {
+    setEditForm({
+      name: delegate.name,
+      email: delegate.email,
+      phone: delegate.phone || ''
+    });
+    setIsEditing(true);
+    setSelectedDelegate(delegate);
+  };
+
+  const handleUpdate = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedDelegate) return;
+    updateDelegateMutation.mutate({ id: selectedDelegate.id, data: editForm });
+  };
 
   const handleResetPassword = (id: number) => {
     if (confirm('Are you sure you want to reset this delegate\'s password?')) {
@@ -208,47 +243,127 @@ export default function Delegates() {
             >
               <div className="p-8">
                 <div className="flex items-center justify-between mb-8">
-                  <h3 className="text-2xl font-bold text-zinc-900">Delegate Profile</h3>
+                  <h3 className="text-2xl font-bold text-zinc-900">
+                    {isEditing ? 'Edit Delegate' : 'Delegate Profile'}
+                  </h3>
                   <button 
-                    onClick={() => setSelectedDelegate(null)}
+                    onClick={() => {
+                      setSelectedDelegate(null);
+                      setIsEditing(false);
+                    }}
                     className="p-2 hover:bg-zinc-100 rounded-full transition-colors"
                   >
                     <X className="w-5 h-5" />
                   </button>
                 </div>
 
-                <div className="flex items-center gap-6 mb-8">
-                  <div className="w-20 h-20 bg-zinc-100 rounded-3xl flex items-center justify-center text-zinc-400">
-                    <User className="w-10 h-10" />
+                <form onSubmit={handleUpdate} className="space-y-6">
+                  <div className="flex items-center gap-6 mb-8">
+                    <div className="w-20 h-20 bg-zinc-100 rounded-3xl flex items-center justify-center text-zinc-400">
+                      <User className="w-10 h-10" />
+                    </div>
+                    <div className="flex-1">
+                      {isEditing ? (
+                        <div className="space-y-1">
+                          <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Full Name</label>
+                          <input
+                            type="text"
+                            value={editForm.name}
+                            onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
+                            className="w-full px-3 py-2 bg-zinc-50 border border-zinc-200 rounded-xl text-sm font-bold outline-none focus:ring-2 focus:ring-zinc-900"
+                            required
+                          />
+                        </div>
+                      ) : (
+                        <>
+                          <h4 className="text-xl font-bold text-zinc-900">{selectedDelegate.name}</h4>
+                          <p className="text-zinc-500">{selectedDelegate.company.name}</p>
+                        </>
+                      )}
+                    </div>
                   </div>
-                  <div>
-                    <h4 className="text-xl font-bold text-zinc-900">{selectedDelegate.name}</h4>
-                    <p className="text-zinc-500">{selectedDelegate.company.name}</p>
-                  </div>
-                </div>
 
-                <div className="grid grid-cols-1 gap-6">
-                  <div className="p-4 bg-zinc-50 rounded-2xl border border-zinc-100">
-                    <p className="text-xs font-bold text-zinc-400 uppercase tracking-widest mb-1">Email Address</p>
-                    <p className="text-zinc-900 font-medium">{selectedDelegate.email}</p>
+                  <div className="grid grid-cols-1 gap-6">
+                    <div className="p-4 bg-zinc-50 rounded-2xl border border-zinc-100">
+                      <p className="text-xs font-bold text-zinc-400 uppercase tracking-widest mb-1">Email Address</p>
+                      {isEditing ? (
+                        <input
+                          type="email"
+                          value={editForm.email}
+                          onChange={(e) => setEditForm({ ...editForm, email: e.target.value })}
+                          className="w-full px-3 py-2 bg-white border border-zinc-200 rounded-xl text-sm font-medium outline-none focus:ring-2 focus:ring-zinc-900"
+                          required
+                        />
+                      ) : (
+                        <p className="text-zinc-900 font-medium">{selectedDelegate.email}</p>
+                      )}
+                    </div>
+                    <div className="p-4 bg-zinc-50 rounded-2xl border border-zinc-100">
+                      <p className="text-xs font-bold text-zinc-400 uppercase tracking-widest mb-1">Phone Number</p>
+                      {isEditing ? (
+                        <input
+                          type="tel"
+                          value={editForm.phone}
+                          onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })}
+                          className="w-full px-3 py-2 bg-white border border-zinc-200 rounded-xl text-sm font-medium outline-none focus:ring-2 focus:ring-zinc-900"
+                        />
+                      ) : (
+                        <p className="text-zinc-900 font-medium">{selectedDelegate.phone || 'Not provided'}</p>
+                      )}
+                    </div>
+                    {!isEditing && (
+                      <div className="p-4 bg-zinc-50 rounded-2xl border border-zinc-100">
+                        <p className="text-xs font-bold text-zinc-400 uppercase tracking-widest mb-1">Status</p>
+                        <p className="text-zinc-900 font-medium capitalize">{selectedDelegate.has_logged_in ? 'Logged In' : 'Never Logged In'}</p>
+                      </div>
+                    )}
                   </div>
-                  <div className="p-4 bg-zinc-50 rounded-2xl border border-zinc-100">
-                    <p className="text-xs font-bold text-zinc-400 uppercase tracking-widest mb-1">Phone Number</p>
-                    <p className="text-zinc-900 font-medium">{selectedDelegate.phone || 'Not provided'}</p>
-                  </div>
-                  <div className="p-4 bg-zinc-50 rounded-2xl border border-zinc-100">
-                    <p className="text-xs font-bold text-zinc-400 uppercase tracking-widest mb-1">Status</p>
-                    <p className="text-zinc-900 font-medium capitalize">{selectedDelegate.has_logged_in ? 'Logged In' : 'Never Logged In'}</p>
-                  </div>
-                </div>
 
-                <button
-                  onClick={() => handleResetPassword(selectedDelegate.id)}
-                  className="w-full mt-8 py-4 bg-zinc-900 text-white rounded-2xl font-bold hover:bg-zinc-800 transition-colors flex items-center justify-center gap-2"
-                >
-                  <Key className="w-5 h-5" />
-                  Reset Password
-                </button>
+                  <div className="flex gap-4 pt-4">
+                    {isEditing ? (
+                      <>
+                        <button
+                          type="button"
+                          onClick={() => setIsEditing(false)}
+                          className="flex-1 py-4 bg-zinc-100 text-zinc-900 rounded-2xl font-bold hover:bg-zinc-200 transition-colors"
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          type="submit"
+                          disabled={updateDelegateMutation.isPending}
+                          className="flex-2 py-4 bg-zinc-900 text-white rounded-2xl font-bold hover:bg-zinc-800 transition-colors flex items-center justify-center gap-2"
+                        >
+                          {updateDelegateMutation.isPending ? (
+                            <Loader2 className="w-5 h-5 animate-spin" />
+                          ) : (
+                            <Save className="w-5 h-5" />
+                          )}
+                          Save Changes
+                        </button>
+                      </>
+                    ) : (
+                      <>
+                        <button
+                          type="button"
+                          onClick={() => handleEdit(selectedDelegate)}
+                          className="flex-1 py-4 bg-zinc-100 text-zinc-900 rounded-2xl font-bold hover:bg-zinc-200 transition-colors flex items-center justify-center gap-2"
+                        >
+                          <Edit2 className="w-5 h-5" />
+                          Edit Profile
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleResetPassword(selectedDelegate.id)}
+                          className="flex-1 py-4 bg-zinc-900 text-white rounded-2xl font-bold hover:bg-zinc-800 transition-colors flex items-center justify-center gap-2"
+                        >
+                          <Key className="w-5 h-5" />
+                          Reset Password
+                        </button>
+                      </>
+                    )}
+                  </div>
+                </form>
               </div>
             </motion.div>
           </div>
