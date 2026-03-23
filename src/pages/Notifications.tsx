@@ -112,25 +112,25 @@ export default function Notifications() {
   ];
 
   return (
-    <div className="space-y-8">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+    <div className="space-y-10">
+      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-6">
         <div>
-          <h2 className="text-3xl font-bold text-zinc-900 tracking-tight">Notifications</h2>
-          <p className="text-zinc-500 mt-1">Monitor all system notifications sent to delegates.</p>
+          <h2 className="text-4xl font-bold text-zinc-900 tracking-tight font-display">System Notifications</h2>
+          <p className="text-zinc-500 mt-2 font-medium">Monitor and manage all system notifications sent to delegates.</p>
         </div>
       </div>
 
-      <div className="bg-white p-6 rounded-3xl border border-zinc-200 shadow-sm space-y-6">
-        <div className="flex flex-col md:flex-row items-center gap-4">
-          <div className="relative flex-1 w-full">
-            <Filter className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400" />
+      <div className="bg-white p-8 rounded-[2.5rem] border border-zinc-200/60 shadow-sm space-y-8 premium-shadow">
+        <div className="flex flex-col lg:flex-row items-center gap-6">
+          <div className="relative flex-1 w-full group">
+            <Filter className="absolute left-5 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400 group-focus-within:text-zinc-900 transition-colors" />
             <select
               value={type}
               onChange={(e) => {
                 setType(e.target.value);
                 setPage(1);
               }}
-              className="w-full pl-11 pr-4 py-3 bg-zinc-50 border border-zinc-200 rounded-2xl focus:ring-2 focus:ring-zinc-900 focus:border-transparent outline-none transition-all appearance-none text-sm font-medium"
+              className="w-full pl-12 pr-6 py-4 bg-zinc-50 border border-zinc-200/60 rounded-2xl focus:ring-4 focus:ring-zinc-900/5 focus:border-zinc-900 outline-none transition-all appearance-none text-sm font-bold text-zinc-900"
             >
               {notificationTypes.map((t) => (
                 <option key={t.id} value={t.id}>{t.label}</option>
@@ -138,8 +138,8 @@ export default function Notifications() {
             </select>
           </div>
 
-          <div className="relative flex-1 w-full">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400" />
+          <div className="relative flex-1 w-full group">
+            <Search className="absolute left-5 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400 group-focus-within:text-zinc-900 transition-colors" />
             <input
               type="text"
               placeholder="Filter by Delegate ID..."
@@ -148,110 +148,129 @@ export default function Notifications() {
                 setDelegateId(e.target.value);
                 setPage(1);
               }}
-              className="w-full pl-11 pr-4 py-3 bg-zinc-50 border border-zinc-200 rounded-2xl focus:ring-2 focus:ring-zinc-900 focus:border-transparent outline-none transition-all text-sm font-medium"
+              className="w-full pl-12 pr-6 py-4 bg-zinc-50 border border-zinc-200/60 rounded-2xl focus:ring-4 focus:ring-zinc-900/5 focus:border-zinc-900 outline-none transition-all text-sm font-bold text-zinc-900 placeholder:text-zinc-400"
             />
           </div>
 
-          <button
-            onClick={() => {
-              setUnreadOnly(!unreadOnly);
-              setPage(1);
-            }}
-            className={cn(
-              "px-6 py-3 rounded-2xl text-sm font-bold transition-all border",
-              unreadOnly 
-                ? "bg-zinc-900 text-white border-zinc-900 shadow-lg shadow-zinc-200" 
-                : "bg-white text-zinc-600 border-zinc-200 hover:bg-zinc-50"
-            )}
-          >
-            Unread Only
-          </button>
+          <div className="flex items-center gap-4 w-full lg:w-auto">
+            <button
+              onClick={() => {
+                setUnreadOnly(!unreadOnly);
+                setPage(1);
+              }}
+              className={cn(
+                "flex-1 lg:flex-none px-8 py-4 rounded-2xl text-xs font-bold transition-all border uppercase tracking-widest",
+                unreadOnly 
+                  ? "bg-zinc-900 text-white border-zinc-900 shadow-xl shadow-zinc-200" 
+                  : "bg-white text-zinc-600 border-zinc-200 hover:bg-zinc-50"
+              )}
+            >
+              Unread Only
+            </button>
 
-          <button
-            onClick={handleClearAll}
-            disabled={clearAllNotificationsMutation.isPending}
-            className="px-6 py-3 bg-red-50 text-red-600 rounded-2xl text-sm font-bold hover:bg-red-100 transition-all flex items-center gap-2 disabled:opacity-50"
-          >
-            {clearAllNotificationsMutation.isPending ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
-            ) : (
-              <Trash className="w-4 h-4" />
-            )}
-            Clear All
-          </button>
+            <button
+              onClick={handleClearAll}
+              disabled={clearAllNotificationsMutation.isPending}
+              className="flex-1 lg:flex-none px-8 py-4 bg-red-50 text-red-600 rounded-2xl text-xs font-bold hover:bg-red-100 transition-all flex items-center justify-center gap-3 disabled:opacity-50 uppercase tracking-widest border border-red-100"
+            >
+              {clearAllNotificationsMutation.isPending ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <Trash className="w-4 h-4" />
+              )}
+              Clear All
+            </button>
+          </div>
         </div>
       </div>
 
-      <div className="bg-white rounded-3xl border border-zinc-200 shadow-sm overflow-hidden">
+      <div className="bg-white rounded-[2.5rem] border border-zinc-200/60 shadow-sm overflow-hidden premium-shadow">
         <div className="overflow-x-auto">
-          <table className="w-full text-left">
+          <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="bg-zinc-50 border-b border-zinc-100">
-                <th className="px-6 py-4 text-xs font-bold text-zinc-500 uppercase tracking-widest">Timestamp</th>
-                <th className="px-6 py-4 text-xs font-bold text-zinc-500 uppercase tracking-widest">Type</th>
-                <th className="px-6 py-4 text-xs font-bold text-zinc-500 uppercase tracking-widest">Delegate</th>
-                <th className="px-6 py-4 text-xs font-bold text-zinc-500 uppercase tracking-widest">Status</th>
-                <th className="px-6 py-4 text-xs font-bold text-zinc-500 uppercase tracking-widest text-right">Actions</th>
+              <tr className="bg-zinc-50/50 border-b border-zinc-100">
+                <th className="px-8 py-6 text-[10px] font-bold text-zinc-400 uppercase tracking-[0.2em]">Timestamp</th>
+                <th className="px-8 py-6 text-[10px] font-bold text-zinc-400 uppercase tracking-[0.2em]">Type</th>
+                <th className="px-8 py-6 text-[10px] font-bold text-zinc-400 uppercase tracking-[0.2em]">Delegate</th>
+                <th className="px-8 py-6 text-[10px] font-bold text-zinc-400 uppercase tracking-[0.2em]">Status</th>
+                <th className="px-8 py-6 text-[10px] font-bold text-zinc-400 uppercase tracking-[0.2em] text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-zinc-100">
               {isLoading ? (
                 <tr>
-                  <td colSpan={5} className="px-6 py-12 text-center">
-                    <Loader2 className="w-8 h-8 animate-spin text-zinc-300 mx-auto" />
+                  <td colSpan={5} className="px-8 py-24 text-center">
+                    <Loader2 className="w-10 h-10 animate-spin text-zinc-200 mx-auto" />
+                    <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mt-4">Loading notifications...</p>
                   </td>
                 </tr>
               ) : data?.notifications?.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="px-6 py-12 text-center text-zinc-500">
-                    No notifications found matching your filters.
+                  <td colSpan={5} className="px-8 py-24 text-center">
+                    <div className="w-16 h-16 bg-zinc-50 rounded-3xl flex items-center justify-center text-zinc-200 mx-auto mb-6">
+                      <Bell className="w-8 h-8" />
+                    </div>
+                    <p className="text-sm font-bold text-zinc-400">No notifications found matching your filters.</p>
                   </td>
                 </tr>
               ) : (
                 data?.notifications?.map((notification, index) => (
-                  <tr key={notification.id} className="hover:bg-zinc-50 transition-colors group">
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center gap-2 text-xs font-medium text-zinc-500">
-                        <Calendar className="w-3 h-3" />
-                        {new Date(notification.created_at).toLocaleString()}
+                  <tr key={notification.id} className="hover:bg-zinc-50/50 transition-all group">
+                    <td className="px-8 py-6 whitespace-nowrap">
+                      <div className="flex items-center gap-3 text-xs font-bold text-zinc-500">
+                        <div className="w-8 h-8 bg-white border border-zinc-100 rounded-lg flex items-center justify-center text-zinc-400">
+                          <Calendar className="w-4 h-4" />
+                        </div>
+                        {new Date(notification.created_at).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
                       </div>
                     </td>
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-2">
-                        {notification.notification_type === 'new_message' && <MessageSquare className="w-3 h-3 text-blue-500" />}
-                        {notification.notification_type === 'admin_announce' && <Megaphone className="w-3 h-3 text-purple-500" />}
-                        {notification.notification_type === 'leave_reported' && <FileText className="w-3 h-3 text-orange-500" />}
-                        <span className="text-[10px] font-bold text-zinc-900 uppercase tracking-wider">
+                    <td className="px-8 py-6">
+                      <div className="flex items-center gap-3">
+                        <div className={cn(
+                          "w-10 h-10 rounded-xl flex items-center justify-center shadow-sm",
+                          notification.notification_type === 'new_message' && "bg-blue-50 text-blue-500",
+                          notification.notification_type === 'admin_announce' && "bg-purple-50 text-purple-500",
+                          notification.notification_type === 'leave_reported' && "bg-orange-50 text-orange-500",
+                          !['new_message', 'admin_announce', 'leave_reported'].includes(notification.notification_type) && "bg-zinc-50 text-zinc-500"
+                        )}>
+                          {notification.notification_type === 'new_message' && <MessageSquare className="w-5 h-5" />}
+                          {notification.notification_type === 'admin_announce' && <Megaphone className="w-5 h-5" />}
+                          {notification.notification_type === 'leave_reported' && <FileText className="w-5 h-5" />}
+                          {!['new_message', 'admin_announce', 'leave_reported'].includes(notification.notification_type) && <Bell className="w-5 h-5" />}
+                        </div>
+                        <span className="text-[10px] font-bold text-zinc-900 uppercase tracking-widest">
                           {notification.notification_type.replace(/_/g, ' ')}
                         </span>
                       </div>
                     </td>
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-2">
-                        <div className="w-6 h-6 bg-zinc-100 rounded-lg flex items-center justify-center text-zinc-400">
-                          <User className="w-3 h-3" />
+                    <td className="px-8 py-6">
+                      <div className="flex items-center gap-4">
+                        <div className="w-10 h-10 bg-zinc-100 rounded-xl flex items-center justify-center text-zinc-400 font-bold text-xs">
+                          {notification.delegate.name.charAt(0)}
                         </div>
                         <div>
-                          <p className="text-xs font-bold text-zinc-900">{notification.delegate.name}</p>
-                          <p className="text-[10px] text-zinc-400">{notification.delegate.email}</p>
+                          <p className="text-sm font-bold text-zinc-900">{notification.delegate.name}</p>
+                          <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">{notification.delegate.email}</p>
                         </div>
                       </div>
                     </td>
-                    <td className="px-6 py-4">
+                    <td className="px-8 py-6">
                       <span className={cn(
-                        "text-[10px] font-bold px-2.5 py-1 rounded-full uppercase tracking-wider",
-                        notification.is_read ? "bg-emerald-50 text-emerald-600" : "bg-orange-50 text-orange-600"
+                        "text-[10px] font-bold px-4 py-1.5 rounded-full uppercase tracking-widest border",
+                        notification.is_read 
+                          ? "bg-emerald-50 text-emerald-600 border-emerald-100" 
+                          : "bg-orange-50 text-orange-600 border-orange-100"
                       )}>
                         {notification.is_read ? 'Read' : 'Unread'}
                       </span>
                     </td>
-                    <td className="px-6 py-4 text-right">
+                    <td className="px-8 py-6 text-right">
                       <button
                         onClick={() => handleDelete(notification.id)}
-                        className="p-2 text-zinc-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
+                        className="p-3 text-zinc-300 hover:text-red-500 hover:bg-red-50 rounded-2xl transition-all opacity-0 group-hover:opacity-100"
                         title="Delete Notification"
                       >
-                        <Trash2 className="w-4 h-4" />
+                        <Trash2 className="w-5 h-5" />
                       </button>
                     </td>
                   </tr>
@@ -262,26 +281,29 @@ export default function Notifications() {
         </div>
 
         {data && data.total_pages > 1 && (
-          <div className="px-6 py-4 border-t border-zinc-100 flex items-center justify-between bg-zinc-50/50">
-            <p className="text-sm text-zinc-500">
-              Showing <span className="font-medium text-zinc-900">{(page - 1) * 50 + 1}</span> to{' '}
-              <span className="font-medium text-zinc-900">
+          <div className="px-8 py-6 border-t border-zinc-100 flex items-center justify-between bg-zinc-50/30">
+            <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">
+              Showing <span className="text-zinc-900">{(page - 1) * 50 + 1}</span> to{' '}
+              <span className="text-zinc-900">
                 {Math.min(page * 50, data.total)}
               </span>{' '}
-              of <span className="font-medium text-zinc-900">{data.total}</span> notifications
+              of <span className="text-zinc-900">{data.total}</span> notifications
             </p>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-3">
               <button
                 onClick={() => setPage(p => Math.max(1, p - 1))}
                 disabled={page === 1}
-                className="p-2 border border-zinc-200 rounded-lg hover:bg-white disabled:opacity-50 transition-colors"
+                className="p-3 bg-white border border-zinc-200 rounded-xl hover:shadow-md disabled:opacity-30 disabled:hover:shadow-none transition-all"
               >
                 <ChevronLeft className="w-4 h-4" />
               </button>
+              <div className="px-4 py-2 bg-white border border-zinc-200 rounded-xl text-[10px] font-bold text-zinc-900 uppercase tracking-widest">
+                {page} / {data.total_pages}
+              </div>
               <button
                 onClick={() => setPage(p => Math.min(data.total_pages, p + 1))}
                 disabled={page === data.total_pages}
-                className="p-2 border border-zinc-200 rounded-lg hover:bg-white disabled:opacity-50 transition-colors"
+                className="p-3 bg-white border border-zinc-200 rounded-xl hover:shadow-md disabled:opacity-30 disabled:hover:shadow-none transition-all"
               >
                 <ChevronRight className="w-4 h-4" />
               </button>

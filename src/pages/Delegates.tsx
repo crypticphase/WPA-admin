@@ -93,95 +93,111 @@ export default function Delegates() {
   }
 
   return (
-    <div className="space-y-8">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+    <div className="space-y-10">
+      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-6">
         <div>
-          <h2 className="text-3xl font-bold text-zinc-900 tracking-tight">Delegates</h2>
-          <p className="text-zinc-500 mt-1">Manage and view all registered delegates.</p>
+          <h2 className="text-4xl font-bold text-zinc-900 tracking-tight font-display">Delegates Registry</h2>
+          <p className="text-zinc-500 mt-2 font-medium">Manage and monitor all registered participants.</p>
         </div>
         
-        <div className="relative w-full sm:w-96">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400" />
+        <div className="relative w-full sm:w-96 group">
+          <Search className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-zinc-400 group-focus-within:text-zinc-900 transition-colors" />
           <input
             type="text"
-            placeholder="Search by name or company..."
+            placeholder="Search by name, email or company..."
             value={keyword}
             onChange={(e) => {
               setKeyword(e.target.value);
               setPage(1);
             }}
-            className="w-full pl-11 pr-4 py-3 bg-white border border-zinc-200 rounded-xl focus:ring-2 focus:ring-zinc-900 focus:border-transparent outline-none transition-all shadow-sm"
+            className="w-full pl-14 pr-6 py-4 bg-white border border-zinc-200/60 rounded-3xl focus:ring-4 focus:ring-zinc-900/5 focus:border-zinc-900 outline-none transition-all shadow-sm font-medium"
           />
         </div>
       </div>
 
-      <div className="bg-white rounded-2xl border border-zinc-200 shadow-sm overflow-hidden">
+      <div className="bg-white rounded-[2.5rem] border border-zinc-200/60 shadow-sm overflow-hidden premium-shadow">
         <div className="overflow-x-auto">
-          <table className="w-full text-left">
+          <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="bg-zinc-50 border-b border-zinc-100">
-                <th className="px-6 py-4 text-xs font-bold text-zinc-500 uppercase tracking-wider">Delegate</th>
-                <th className="px-6 py-4 text-xs font-bold text-zinc-500 uppercase tracking-wider">Company</th>
-                <th className="px-6 py-4 text-xs font-bold text-zinc-500 uppercase tracking-wider">Status</th>
-                <th className="px-6 py-4 text-xs font-bold text-zinc-500 uppercase tracking-wider">Joined</th>
-                <th className="px-6 py-4 text-xs font-bold text-zinc-500 uppercase tracking-wider text-right">Actions</th>
+              <tr className="bg-zinc-50/50 border-b border-zinc-100">
+                <th className="px-8 py-5 text-[10px] font-bold text-zinc-400 uppercase tracking-[0.2em]">Delegate Profile</th>
+                <th className="px-8 py-5 text-[10px] font-bold text-zinc-400 uppercase tracking-[0.2em]">Affiliation</th>
+                <th className="px-8 py-5 text-[10px] font-bold text-zinc-400 uppercase tracking-[0.2em]">Status</th>
+                <th className="px-8 py-5 text-[10px] font-bold text-zinc-400 uppercase tracking-[0.2em]">Registration</th>
+                <th className="px-8 py-5 text-[10px] font-bold text-zinc-400 uppercase tracking-[0.2em] text-right">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-zinc-100">
+            <tbody className="divide-y divide-zinc-50">
               {isLoading ? (
                 <tr>
-                  <td colSpan={5} className="px-6 py-12 text-center">
-                    <Loader2 className="w-8 h-8 animate-spin text-zinc-300 mx-auto" />
+                  <td colSpan={5} className="px-8 py-20 text-center">
+                    <div className="flex flex-col items-center gap-4">
+                      <Loader2 className="w-10 h-10 animate-spin text-zinc-200" />
+                      <p className="text-xs font-bold text-zinc-400 uppercase tracking-widest">Loading registry...</p>
+                    </div>
                   </td>
                 </tr>
               ) : data?.delegates?.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="px-6 py-12 text-center text-zinc-500">
-                    No delegates found matching your search.
+                  <td colSpan={5} className="px-8 py-20 text-center">
+                    <div className="flex flex-col items-center gap-4">
+                      <div className="w-16 h-16 bg-zinc-50 rounded-3xl flex items-center justify-center text-zinc-300">
+                        <Search className="w-8 h-8" />
+                      </div>
+                      <p className="text-sm font-bold text-zinc-400">No delegates found matching your search.</p>
+                    </div>
                   </td>
                 </tr>
               ) : (
                 data?.delegates?.map((delegate) => (
-                  <tr key={delegate.id} className="hover:bg-zinc-50 transition-colors group">
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-zinc-100 rounded-full flex items-center justify-center text-zinc-500">
-                          <User className="w-5 h-5" />
+                  <tr key={delegate.id} className="hover:bg-zinc-50/50 transition-colors group">
+                    <td className="px-8 py-6">
+                      <div className="flex items-center gap-4">
+                        <div className="w-12 h-12 bg-zinc-100 rounded-2xl flex items-center justify-center text-zinc-400 group-hover:bg-white group-hover:shadow-md transition-all duration-300">
+                          <User className="w-6 h-6" />
                         </div>
                         <div>
-                          <p className="text-sm font-bold text-zinc-900">{delegate.name}</p>
-                          <p className="text-xs text-zinc-500">{delegate.email}</p>
+                          <p className="text-sm font-bold text-zinc-900 group-hover:text-zinc-900 transition-colors">{delegate.name}</p>
+                          <p className="text-xs font-medium text-zinc-400 mt-0.5">{delegate.email}</p>
                         </div>
                       </div>
                     </td>
-                    <td className="px-6 py-4">
-                      <span className="text-sm text-zinc-600">{delegate.company.name}</span>
+                    <td className="px-8 py-6">
+                      <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-zinc-50 rounded-xl border border-zinc-100">
+                        <span className="text-xs font-bold text-zinc-600">{delegate.company.name}</span>
+                      </div>
                     </td>
-                    <td className="px-6 py-4">
-                      <span className={cn(
-                        "text-[10px] font-bold px-2.5 py-1 rounded-full uppercase tracking-wider",
-                        delegate.has_logged_in ? "bg-emerald-50 text-emerald-600" : "bg-zinc-100 text-zinc-500"
-                      )}>
-                        {delegate.has_logged_in ? 'Logged In' : 'Never'}
+                    <td className="px-8 py-6">
+                      <div className="flex items-center gap-2">
+                        <div className={cn(
+                          "w-1.5 h-1.5 rounded-full",
+                          delegate.has_logged_in ? "bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.4)]" : "bg-zinc-300"
+                        )} />
+                        <span className={cn(
+                          "text-[10px] font-bold uppercase tracking-widest",
+                          delegate.has_logged_in ? "text-emerald-600" : "text-zinc-400"
+                        )}>
+                          {delegate.has_logged_in ? 'Active' : 'Pending'}
+                        </span>
+                      </div>
+                    </td>
+                    <td className="px-8 py-6">
+                      <span className="text-xs font-mono text-zinc-400">
+                        {new Date(delegate.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                       </span>
                     </td>
-                    <td className="px-6 py-4">
-                      <span className="text-sm text-zinc-500">
-                        {new Date(delegate.created_at).toLocaleDateString()}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 text-right">
-                      <div className="flex items-center justify-end gap-2">
+                    <td className="px-8 py-6 text-right">
+                      <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-all duration-300 translate-x-2 group-hover:translate-x-0">
                         <button 
                           onClick={() => setSelectedDelegate(delegate)}
-                          className="p-2 text-zinc-400 hover:text-zinc-900 hover:bg-zinc-100 rounded-lg transition-colors"
+                          className="p-2.5 text-zinc-400 hover:text-zinc-900 hover:bg-white hover:shadow-md rounded-xl transition-all"
                           title="View Details"
                         >
                           <Eye className="w-4 h-4" />
                         </button>
                         <button 
                           onClick={() => handleResetPassword(delegate.id)}
-                          className="p-2 text-zinc-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                          className="p-2.5 text-zinc-400 hover:text-red-600 hover:bg-white hover:shadow-md rounded-xl transition-all"
                           title="Reset Password"
                         >
                           <Key className="w-4 h-4" />
@@ -196,26 +212,25 @@ export default function Delegates() {
         </div>
 
         {data && data.total_pages > 1 && (
-          <div className="px-6 py-4 border-t border-zinc-100 flex items-center justify-between bg-zinc-50/50">
-            <p className="text-sm text-zinc-500">
-              Showing <span className="font-medium text-zinc-900">{(page - 1) * 20 + 1}</span> to{' '}
-              <span className="font-medium text-zinc-900">
-                {Math.min(page * 20, data.total)}
-              </span>{' '}
-              of <span className="font-medium text-zinc-900">{data.total}</span> results
+          <div className="px-8 py-6 border-t border-zinc-100 flex items-center justify-between bg-zinc-50/30">
+            <p className="text-xs font-bold text-zinc-400 uppercase tracking-widest">
+              Showing <span className="text-zinc-900">{(page - 1) * 20 + 1}</span> - <span className="text-zinc-900">{Math.min(page * 20, data.total)}</span> of <span className="text-zinc-900">{data.total}</span>
             </p>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-3">
               <button
                 onClick={() => setPage(p => Math.max(1, p - 1))}
                 disabled={page === 1}
-                className="p-2 border border-zinc-200 rounded-lg hover:bg-white disabled:opacity-50 transition-colors"
+                className="p-3 bg-white border border-zinc-200 rounded-2xl hover:shadow-md disabled:opacity-30 disabled:hover:shadow-none transition-all"
               >
                 <ChevronLeft className="w-4 h-4" />
               </button>
+              <div className="px-4 py-2 bg-white border border-zinc-200 rounded-2xl text-xs font-bold text-zinc-900">
+                {page} / {data.total_pages}
+              </div>
               <button
                 onClick={() => setPage(p => Math.min(data.total_pages, p + 1))}
                 disabled={page === data.total_pages}
-                className="p-2 border border-zinc-200 rounded-lg hover:bg-white disabled:opacity-50 transition-colors"
+                className="p-3 bg-white border border-zinc-200 rounded-2xl hover:shadow-md disabled:opacity-30 disabled:hover:shadow-none transition-all"
               >
                 <ChevronRight className="w-4 h-4" />
               </button>
@@ -227,112 +242,140 @@ export default function Delegates() {
       {/* Delegate Detail Modal */}
       <AnimatePresence>
         {selectedDelegate && (
-          <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+          <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 sm:p-6">
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              onClick={() => setSelectedDelegate(null)}
-              className="absolute inset-0 bg-zinc-900/60 backdrop-blur-sm"
+              onClick={() => {
+                setSelectedDelegate(null);
+                setIsEditing(false);
+              }}
+              className="absolute inset-0 bg-zinc-900/80 backdrop-blur-md"
             />
             <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              initial={{ opacity: 0, scale: 0.95, y: 40 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className="relative w-full max-w-lg bg-white rounded-3xl shadow-2xl overflow-hidden"
+              exit={{ opacity: 0, scale: 0.95, y: 40 }}
+              className="relative w-full max-w-xl bg-white rounded-[2.5rem] shadow-2xl overflow-hidden"
             >
-              <div className="p-8">
-                <div className="flex items-center justify-between mb-8">
-                  <h3 className="text-2xl font-bold text-zinc-900">
-                    {isEditing ? 'Edit Delegate' : 'Delegate Profile'}
-                  </h3>
+              <div className="p-10">
+                <div className="flex items-center justify-between mb-10">
+                  <div>
+                    <h3 className="text-3xl font-bold text-zinc-900 font-display tracking-tight">
+                      {isEditing ? 'Update Profile' : 'Delegate Info'}
+                    </h3>
+                    <p className="text-zinc-500 text-sm mt-1 font-medium">
+                      {isEditing ? 'Modify registration details below.' : 'Comprehensive participant overview.'}
+                    </p>
+                  </div>
                   <button 
                     onClick={() => {
                       setSelectedDelegate(null);
                       setIsEditing(false);
                     }}
-                    className="p-2 hover:bg-zinc-100 rounded-full transition-colors"
+                    className="p-3 bg-zinc-50 hover:bg-zinc-100 rounded-2xl transition-colors text-zinc-400 hover:text-zinc-900"
                   >
-                    <X className="w-5 h-5" />
+                    <X className="w-6 h-6" />
                   </button>
                 </div>
 
-                <form onSubmit={handleUpdate} className="space-y-6">
-                  <div className="flex items-center gap-6 mb-8">
-                    <div className="w-20 h-20 bg-zinc-100 rounded-3xl flex items-center justify-center text-zinc-400">
-                      <User className="w-10 h-10" />
+                <form onSubmit={handleUpdate} className="space-y-8">
+                  <div className="flex items-center gap-8 p-6 bg-zinc-50 rounded-[2rem] border border-zinc-100">
+                    <div className="w-24 h-24 bg-white rounded-3xl flex items-center justify-center text-zinc-300 shadow-sm border border-zinc-200">
+                      <User className="w-12 h-12" />
                     </div>
                     <div className="flex-1">
                       {isEditing ? (
-                        <div className="space-y-1">
-                          <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Full Name</label>
+                        <div className="space-y-2">
+                          <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest ml-1">Full Identity</label>
                           <input
                             type="text"
                             value={editForm.name}
                             onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
-                            className="w-full px-3 py-2 bg-zinc-50 border border-zinc-200 rounded-xl text-sm font-bold outline-none focus:ring-2 focus:ring-zinc-900"
+                            className="w-full px-4 py-3 bg-white border border-zinc-200 rounded-2xl text-sm font-bold outline-none focus:ring-4 focus:ring-zinc-900/5 focus:border-zinc-900 transition-all"
                             required
                           />
                         </div>
                       ) : (
                         <>
-                          <h4 className="text-xl font-bold text-zinc-900">{selectedDelegate.name}</h4>
-                          <p className="text-zinc-500">{selectedDelegate.company.name}</p>
+                          <h4 className="text-2xl font-bold text-zinc-900 font-display">{selectedDelegate.name}</h4>
+                          <div className="inline-flex items-center gap-2 px-3 py-1 bg-zinc-200/50 rounded-lg mt-2">
+                            <span className="text-[10px] font-bold text-zinc-600 uppercase tracking-widest">{selectedDelegate.company.name}</span>
+                          </div>
                         </>
                       )}
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-1 gap-6">
-                    <div className="p-4 bg-zinc-50 rounded-2xl border border-zinc-100">
-                      <p className="text-xs font-bold text-zinc-400 uppercase tracking-widest mb-1">Email Address</p>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest ml-1">Email Address</label>
                       {isEditing ? (
                         <input
                           type="email"
                           value={editForm.email}
                           onChange={(e) => setEditForm({ ...editForm, email: e.target.value })}
-                          className="w-full px-3 py-2 bg-white border border-zinc-200 rounded-xl text-sm font-medium outline-none focus:ring-2 focus:ring-zinc-900"
+                          className="w-full px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-2xl text-sm font-medium outline-none focus:ring-4 focus:ring-zinc-900/5 focus:border-zinc-900 transition-all"
                           required
                         />
                       ) : (
-                        <p className="text-zinc-900 font-medium">{selectedDelegate.email}</p>
+                        <div className="p-4 bg-zinc-50 rounded-2xl border border-zinc-100">
+                          <p className="text-sm font-bold text-zinc-900 truncate">{selectedDelegate.email}</p>
+                        </div>
                       )}
                     </div>
-                    <div className="p-4 bg-zinc-50 rounded-2xl border border-zinc-100">
-                      <p className="text-xs font-bold text-zinc-400 uppercase tracking-widest mb-1">Phone Number</p>
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest ml-1">Contact Phone</label>
                       {isEditing ? (
                         <input
                           type="tel"
                           value={editForm.phone}
                           onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })}
-                          className="w-full px-3 py-2 bg-white border border-zinc-200 rounded-xl text-sm font-medium outline-none focus:ring-2 focus:ring-zinc-900"
+                          className="w-full px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-2xl text-sm font-medium outline-none focus:ring-4 focus:ring-zinc-900/5 focus:border-zinc-900 transition-all"
                         />
                       ) : (
-                        <p className="text-zinc-900 font-medium">{selectedDelegate.phone || 'Not provided'}</p>
+                        <div className="p-4 bg-zinc-50 rounded-2xl border border-zinc-100">
+                          <p className="text-sm font-bold text-zinc-900">{selectedDelegate.phone || '—'}</p>
+                        </div>
                       )}
                     </div>
-                    {!isEditing && (
-                      <div className="p-4 bg-zinc-50 rounded-2xl border border-zinc-100">
-                        <p className="text-xs font-bold text-zinc-400 uppercase tracking-widest mb-1">Status</p>
-                        <p className="text-zinc-900 font-medium capitalize">{selectedDelegate.has_logged_in ? 'Logged In' : 'Never Logged In'}</p>
-                      </div>
-                    )}
                   </div>
 
-                  <div className="flex gap-4 pt-4">
+                  {!isEditing && (
+                    <div className="grid grid-cols-2 gap-6">
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest ml-1">System Status</label>
+                        <div className="p-4 bg-zinc-50 rounded-2xl border border-zinc-100 flex items-center gap-2">
+                          <div className={cn("w-2 h-2 rounded-full", selectedDelegate.has_logged_in ? "bg-emerald-500" : "bg-zinc-300")} />
+                          <p className="text-sm font-bold text-zinc-900">{selectedDelegate.has_logged_in ? 'Active' : 'Inactive'}</p>
+                        </div>
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest ml-1">Member Since</label>
+                        <div className="p-4 bg-zinc-50 rounded-2xl border border-zinc-100">
+                          <p className="text-sm font-bold text-zinc-900">
+                            {new Date(selectedDelegate.created_at).toLocaleDateString()}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="flex gap-4 pt-6">
                     {isEditing ? (
                       <>
                         <button
                           type="button"
                           onClick={() => setIsEditing(false)}
-                          className="flex-1 py-4 bg-zinc-100 text-zinc-900 rounded-2xl font-bold hover:bg-zinc-200 transition-colors"
+                          className="flex-1 py-5 bg-zinc-100 text-zinc-900 rounded-[1.5rem] font-bold hover:bg-zinc-200 transition-all"
                         >
                           Cancel
                         </button>
                         <button
                           type="submit"
                           disabled={updateDelegateMutation.isPending}
-                          className="flex-2 py-4 bg-zinc-900 text-white rounded-2xl font-bold hover:bg-zinc-800 transition-colors flex items-center justify-center gap-2"
+                          className="flex-[2] py-5 bg-zinc-900 text-white rounded-[1.5rem] font-bold hover:bg-zinc-800 transition-all flex items-center justify-center gap-3 shadow-xl shadow-zinc-200"
                         >
                           {updateDelegateMutation.isPending ? (
                             <Loader2 className="w-5 h-5 animate-spin" />
@@ -347,7 +390,7 @@ export default function Delegates() {
                         <button
                           type="button"
                           onClick={() => handleEdit(selectedDelegate)}
-                          className="flex-1 py-4 bg-zinc-100 text-zinc-900 rounded-2xl font-bold hover:bg-zinc-200 transition-colors flex items-center justify-center gap-2"
+                          className="flex-1 py-5 bg-zinc-50 text-zinc-900 rounded-[1.5rem] font-bold hover:bg-zinc-100 transition-all flex items-center justify-center gap-3 border border-zinc-200"
                         >
                           <Edit2 className="w-5 h-5" />
                           Edit Profile
@@ -355,7 +398,7 @@ export default function Delegates() {
                         <button
                           type="button"
                           onClick={() => handleResetPassword(selectedDelegate.id)}
-                          className="flex-1 py-4 bg-zinc-900 text-white rounded-2xl font-bold hover:bg-zinc-800 transition-colors flex items-center justify-center gap-2"
+                          className="flex-1 py-5 bg-zinc-900 text-white rounded-[1.5rem] font-bold hover:bg-zinc-800 transition-all flex items-center justify-center gap-3 shadow-xl shadow-zinc-200"
                         >
                           <Key className="w-5 h-5" />
                           Reset Password
