@@ -121,6 +121,26 @@ export interface ChatMessage {
   };
 }
 
+export interface DirectChatRoom {
+  delegate_a: {
+    id: number;
+    name: string;
+    avatar_url: string;
+    company: string;
+  };
+  delegate_b: {
+    id: number;
+    name: string;
+    avatar_url: string;
+    company: string;
+  };
+  message_count: number;
+  unread_count: number;
+  last_message: string;
+  last_message_type: string;
+  last_message_at: string;
+}
+
 export interface Notification {
   id: number;
   notification_type: string;
