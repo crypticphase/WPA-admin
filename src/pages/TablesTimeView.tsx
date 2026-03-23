@@ -53,8 +53,8 @@ export default function TablesTimeView() {
   }
 
   const filteredTables = data?.tables?.filter(table => 
-    table.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    table.delegates?.some(d => d.name.toLowerCase().includes(searchQuery.toLowerCase()))
+    (table.name?.toLowerCase() || '').includes(searchQuery.toLowerCase()) ||
+    table.delegates?.some(d => (d.name?.toLowerCase() || '').includes(searchQuery.toLowerCase()))
   );
 
   return (
