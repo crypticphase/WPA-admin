@@ -179,6 +179,12 @@ export interface RedisStatus {
   memory_peak: string;
 }
 
+export interface LeaveType {
+  id: number;
+  name: string;
+  leave_forms_count: number;
+}
+
 export interface Connection {
   id: number;
   status: 'pending' | 'accepted' | 'rejected';

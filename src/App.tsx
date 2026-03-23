@@ -7,6 +7,7 @@ import Dashboard from './pages/Dashboard';
 import Delegates from './pages/Delegates';
 import Announcements from './pages/Announcements';
 import LeaveForms from './pages/LeaveForms';
+import LeaveTypes from './pages/LeaveTypes';
 import GroupChats from './pages/GroupChats';
 import AuditLogs from './pages/AuditLogs';
 import SecurityLogs from './pages/SecurityLogs';
@@ -50,6 +51,7 @@ export default function App() {
             <Route path="delegates" element={<Delegates />} />
             <Route path="announcements" element={<Announcements />} />
             <Route path="leave-forms" element={<LeaveForms />} />
+            <Route path="leave-types" element={<LeaveTypes />} />
             <Route path="group-chats" element={<GroupChats />} />
             <Route path="audit-logs" element={<AuditLogs />} />
             <Route path="security-logs" element={<SecurityLogs />} />
