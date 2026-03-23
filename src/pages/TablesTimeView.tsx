@@ -140,9 +140,9 @@ export default function TablesTimeView() {
                 Select Date
               </label>
               <div className="space-y-2">
-                {data?.days?.map((day) => (
+                {data?.days?.map((day, idx) => (
                   <button
-                    key={day}
+                    key={`day-${day}-${idx}`}
                     onClick={() => {
                       setSelectedDate(day);
                       setSelectedTime(''); 
@@ -166,9 +166,9 @@ export default function TablesTimeView() {
                 Select Time Slot
               </label>
               <div className="grid grid-cols-2 gap-2">
-                {data?.times_today?.map((time) => (
+                {data?.times_today?.map((time, idx) => (
                   <button
-                    key={time}
+                    key={`time-${time}-${idx}`}
                     onClick={() => setSelectedTime(time)}
                     className={cn(
                       "px-3 py-3 rounded-xl text-[10px] font-black text-center transition-all border uppercase tracking-widest",
@@ -216,7 +216,7 @@ export default function TablesTimeView() {
             ) : (
               filteredTables?.map((table, index) => (
                 <motion.div
-                  key={table.id}
+                  key={`table-${table.id || index}`}
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: index * 0.02 }}
@@ -255,7 +255,7 @@ export default function TablesTimeView() {
                   <div className="p-6 space-y-6">
                     {table.meetings?.length > 0 ? (
                       table.meetings?.map((meeting: any, mIdx: number) => (
-                        <div key={mIdx} className="space-y-6">
+                        <div key={`meeting-${meeting.id || mIdx}`} className="space-y-6">
                           <div className="flex items-center gap-3">
                             <div className="h-px flex-1 bg-zinc-100" />
                             <div className="px-4 py-1.5 bg-zinc-100 rounded-full text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em]">
@@ -272,8 +272,8 @@ export default function TablesTimeView() {
                                 <Users className="w-3.5 h-3.5 text-blue-300" />
                               </div>
                               <div className="space-y-2">
-                                {meeting.booker_team?.members?.map((member: any) => (
-                                  <div key={member.id} className="flex items-center gap-3 p-3 bg-zinc-50 rounded-2xl border border-zinc-100 group-hover:bg-white group-hover:border-blue-100 transition-all shadow-sm hover:shadow-md">
+                                {meeting.booker_team?.members?.map((member: any, memIdx: number) => (
+                                  <div key={`booker-${member.id || memIdx}`} className="flex items-center gap-3 p-3 bg-zinc-50 rounded-2xl border border-zinc-100 group-hover:bg-white group-hover:border-blue-100 transition-all shadow-sm hover:shadow-md">
                                     <div className="w-9 h-9 bg-white border border-zinc-100 rounded-xl flex items-center justify-center text-zinc-400 shadow-sm shrink-0">
                                       <User className="w-4 h-4" />
                                     </div>
@@ -300,8 +300,8 @@ export default function TablesTimeView() {
                               </div>
                               <div className="space-y-2">
                                 {meeting.target_team?.members ? (
-                                  meeting.target_team.members.map((member: any) => (
-                                    <div key={member.id} className="flex items-center gap-3 p-3 bg-zinc-50 rounded-2xl border border-zinc-100 group-hover:bg-white group-hover:border-purple-100 transition-all shadow-sm hover:shadow-md flex-row-reverse text-right">
+                                  meeting.target_team.members.map((member: any, memIdx: number) => (
+                                    <div key={`target-${member.id || memIdx}`} className="flex items-center gap-3 p-3 bg-zinc-50 rounded-2xl border border-zinc-100 group-hover:bg-white group-hover:border-purple-100 transition-all shadow-sm hover:shadow-md flex-row-reverse text-right">
                                       <div className="w-9 h-9 bg-white border border-zinc-100 rounded-xl flex items-center justify-center text-zinc-400 shadow-sm shrink-0">
                                         <User className="w-4 h-4" />
                                       </div>
