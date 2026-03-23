@@ -1,0 +1,5 @@
+{
+  "name": "WPA Admin Portal",
+  "description": "Administrative dashboard for managing delegates, announcements, leave forms, and system maintenance.",
+  "requestFramePermissions": []
+}
