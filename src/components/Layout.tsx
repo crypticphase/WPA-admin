@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import { useState } from 'react';
 import { cn } from '../utils';
+import BaseUrlManager from './BaseUrlManager';
 
 const navigation = [
   { name: 'Dashboard', href: '/', icon: LayoutDashboard },
@@ -83,7 +84,9 @@ export default function Layout() {
           })}
         </nav>
 
-        <div className="p-6 mt-auto">
+        <div className="p-6 mt-auto space-y-4">
+          <BaseUrlManager />
+          
           <div className="bg-zinc-50 rounded-3xl p-4 mb-4 border border-zinc-100">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 bg-white rounded-xl border border-zinc-200 flex items-center justify-center text-zinc-400">

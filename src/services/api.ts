@@ -1,10 +1,13 @@
 import axios from 'axios';
 
-const api = axios.create({
-  baseURL: 'https://wpadocker-production.up.railway.app/api/v1',
-});
+const DEFAULT_BASE_URL = 'https://wpadocker-production.up.railway.app/api/v1';
+
+const api = axios.create();
 
 api.interceptors.request.use((config) => {
+  const customBaseUrl = localStorage.getItem('custom_base_url');
+  config.baseURL = customBaseUrl || DEFAULT_BASE_URL;
+  
   const token = localStorage.getItem('admin_token');
   if (token) {
     config.headers['X-Admin-Token'] = token;
