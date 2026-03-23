@@ -10,7 +10,7 @@ import {
   X,
   ChevronRight
 } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import api from '../services/api';
 import type { ChatMessage, DirectChatRoom } from '../types';
 import { motion, AnimatePresence } from 'motion/react';
@@ -20,6 +20,7 @@ export default function DirectMessages() {
   const [selectedRoom, setSelectedRoom] = useState<DirectChatRoom | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [page, setPage] = useState(1);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const { data: roomsData, isLoading: isLoadingRooms } = useQuery<{ 
     rooms: DirectChatRoom[];
@@ -54,6 +55,16 @@ export default function DirectMessages() {
     enabled: !!selectedRoom,
   });
 
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
+
+  useEffect(() => {
+    if (messagesData?.messages) {
+      scrollToBottom();
+    }
+  }, [messagesData?.messages]);
+
   const filteredRooms = roomsData?.rooms.filter(room => 
     room.delegate_a.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     room.delegate_b.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -62,16 +73,16 @@ export default function DirectMessages() {
   );
 
   return (
-    <div className="space-y-8">
-      <div>
+    <div className="flex flex-col h-[calc(100vh-10rem)] lg:h-[calc(100vh-8rem)]">
+      <div className="mb-6 shrink-0">
         <h2 className="text-3xl font-bold text-zinc-900 tracking-tight">Direct Messages</h2>
         <p className="text-zinc-500 mt-1">Monitor private conversations between delegates.</p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 h-[calc(100vh-12rem)]">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 flex-1 min-h-0">
         {/* Rooms Sidebar */}
-        <div className="lg:col-span-1 flex flex-col gap-4">
-          <div className="relative">
+        <div className="lg:col-span-1 flex flex-col gap-4 min-h-0">
+          <div className="relative shrink-0">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400" />
             <input
               type="text"
@@ -154,7 +165,7 @@ export default function DirectMessages() {
 
           {/* Pagination Controls */}
           {roomsData && roomsData.total_pages > 1 && (
-            <div className="flex items-center justify-between px-2 py-2 border-t border-zinc-100 pt-4">
+            <div className="flex items-center justify-between px-2 py-2 border-t border-zinc-100 pt-4 shrink-0">
               <button
                 onClick={() => setPage(p => Math.max(1, p - 1))}
                 disabled={page === 1}
@@ -177,7 +188,7 @@ export default function DirectMessages() {
         </div>
 
         {/* Conversation Area */}
-        <div className="lg:col-span-2 flex flex-col h-full">
+        <div className="lg:col-span-2 flex flex-col min-h-0">
           {!selectedRoom ? (
             <div className="flex-1 bg-white border border-dashed border-zinc-200 rounded-[2.5rem] flex flex-col items-center justify-center text-zinc-400 p-12 text-center">
               <div className="w-20 h-20 bg-zinc-50 rounded-3xl flex items-center justify-center mb-6">
@@ -187,9 +198,9 @@ export default function DirectMessages() {
               <p className="text-sm max-w-xs">Choose a chat room from the list to view the message history between delegates.</p>
             </div>
           ) : (
-            <div className="flex-1 bg-white border border-zinc-200 rounded-[2.5rem] overflow-hidden flex flex-col shadow-sm">
+            <div className="flex-1 bg-white border border-zinc-200 rounded-[2.5rem] overflow-hidden flex flex-col shadow-sm min-h-0">
               {/* Header */}
-              <div className="p-6 border-b border-zinc-100 bg-zinc-50/50 flex items-center justify-between">
+              <div className="p-6 border-b border-zinc-100 bg-zinc-50/50 flex items-center justify-between shrink-0">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 bg-white rounded-xl border border-zinc-200 flex items-center justify-center text-zinc-400 overflow-hidden">
                     {selectedRoom.delegate_a.avatar_url ? (
@@ -220,7 +231,7 @@ export default function DirectMessages() {
               </div>
 
               {/* Messages */}
-              <div className="flex-1 overflow-y-auto p-8 space-y-6 custom-scrollbar">
+              <div className="flex-1 overflow-y-auto p-8 space-y-6 custom-scrollbar min-h-0">
                 {isLoadingMessages ? (
                   <div className="flex items-center justify-center h-full">
                     <Loader2 className="w-10 h-10 animate-spin text-zinc-200" />
@@ -231,54 +242,57 @@ export default function DirectMessages() {
                     <p className="text-sm">No messages found.</p>
                   </div>
                 ) : (
-                  [...messagesData.messages].reverse().map((msg) => {
-                    const isFromA = msg.sender.id === selectedRoom.delegate_a.id;
-                    return (
-                      <div key={msg.id} className={cn(
-                        "flex gap-4 max-w-[80%]",
-                        !isFromA && "ml-auto flex-row-reverse"
-                      )}>
-                        <div className="w-8 h-8 bg-zinc-100 rounded-lg flex items-center justify-center text-zinc-400 shrink-0 overflow-hidden">
-                          {msg.sender.avatar_url ? (
-                            <img src={msg.sender.avatar_url} alt="" className="w-full h-full object-cover" />
-                          ) : (
-                            <User className="w-4 h-4" />
-                          )}
-                        </div>
-                        <div className={cn(
-                          "space-y-1",
-                          !isFromA && "text-right"
+                  <>
+                    {[...messagesData.messages].reverse().map((msg) => {
+                      const isFromA = msg.sender.id === selectedRoom.delegate_a.id;
+                      return (
+                        <div key={msg.id} className={cn(
+                          "flex gap-4 max-w-[80%]",
+                          !isFromA && "ml-auto flex-row-reverse"
                         )}>
-                          <div className="flex items-center gap-2 mb-1">
-                            <span className="text-[10px] font-bold text-zinc-900">{msg.sender.name}</span>
-                            <span className="text-[10px] text-zinc-400 flex items-center gap-1">
-                              <Clock className="w-2.5 h-2.5" />
-                              {new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                            </span>
+                          <div className="w-8 h-8 bg-zinc-100 rounded-lg flex items-center justify-center text-zinc-400 shrink-0 overflow-hidden">
+                            {msg.sender.avatar_url ? (
+                              <img src={msg.sender.avatar_url} alt="" className="w-full h-full object-cover" />
+                            ) : (
+                              <User className="w-4 h-4" />
+                            )}
                           </div>
                           <div className={cn(
-                            "p-4 rounded-2xl border text-sm leading-relaxed",
-                            isFromA 
-                              ? "bg-zinc-50 border-zinc-100 rounded-tl-none text-zinc-700" 
-                              : "bg-zinc-900 border-zinc-900 text-white rounded-tr-none"
+                            "space-y-1",
+                            !isFromA && "text-right"
                           )}>
-                            {msg.is_deleted ? (
-                              <span className="italic opacity-50">ข้อความถูกลบแล้ว</span>
-                            ) : msg.message_type === 'image' ? (
-                              <img src={msg.image_url!} alt="" className="rounded-xl max-w-full border border-zinc-200/10" />
-                            ) : (
-                              msg.content
-                            )}
-                            {msg.read_at && (
-                              <div className={cn("mt-1 text-[9px] opacity-40", !isFromA && "text-zinc-400")}>
-                                Read at {new Date(msg.read_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                              </div>
-                            )}
+                            <div className="flex items-center gap-2 mb-1">
+                              <span className="text-[10px] font-bold text-zinc-900">{msg.sender.name}</span>
+                              <span className="text-[10px] text-zinc-400 flex items-center gap-1">
+                                <Clock className="w-2.5 h-2.5" />
+                                {new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                              </span>
+                            </div>
+                            <div className={cn(
+                              "p-4 rounded-2xl border text-sm leading-relaxed",
+                              isFromA 
+                                ? "bg-zinc-50 border-zinc-100 rounded-tl-none text-zinc-700" 
+                                : "bg-zinc-900 border-zinc-900 text-white rounded-tr-none"
+                            )}>
+                              {msg.is_deleted ? (
+                                <span className="italic opacity-50">ข้อความถูกลบแล้ว</span>
+                              ) : msg.message_type === 'image' ? (
+                                <img src={msg.image_url!} alt="" className="rounded-xl max-w-full border border-zinc-200/10" />
+                              ) : (
+                                msg.content
+                              )}
+                              {msg.read_at && (
+                                <div className={cn("mt-1 text-[9px] opacity-40", !isFromA && "text-zinc-400")}>
+                                  Read at {new Date(msg.read_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                </div>
+                              )}
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    );
-                  })
+                      );
+                    })}
+                    <div ref={messagesEndRef} />
+                  </>
                 )}
               </div>
             </div>
