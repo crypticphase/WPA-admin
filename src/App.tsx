@@ -11,7 +11,6 @@ import LeaveTypes from './pages/LeaveTypes';
 import GroupChats from './pages/GroupChats';
 import AuditLogs from './pages/AuditLogs';
 import SecurityLogs from './pages/SecurityLogs';
-import TablesTimeView from './pages/TablesTimeView';
 import DirectMessages from './pages/DirectMessages';
 import Notifications from './pages/Notifications';
 import ConnectionRequests from './pages/ConnectionRequests';
@@ -57,7 +56,6 @@ export default function App() {
             <Route path="direct-messages" element={<DirectMessages />} />
             <Route path="audit-logs" element={<AuditLogs />} />
             <Route path="security-logs" element={<SecurityLogs />} />
-            <Route path="tables" element={<TablesTimeView />} />
             <Route path="notifications" element={<Notifications />} />
             <Route path="connection-requests" element={<ConnectionRequests />} />
             <Route path="maintenance" element={<Maintenance />} />

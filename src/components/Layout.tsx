@@ -30,7 +30,6 @@ const navigation = [
   { name: 'Direct Messages', href: '/direct-messages', icon: MessageCircle },
   { name: 'Audit Logs', href: '/audit-logs', icon: History },
   { name: 'Security Logs', href: '/security-logs', icon: ShieldAlert },
-  { name: 'Tables View', href: '/tables', icon: Grid3X3 },
   { name: 'Notifications', href: '/notifications', icon: Bell },
   { name: 'Connections', href: '/connection-requests', icon: Share2 },
   { name: 'Maintenance', href: '/maintenance', icon: Settings },

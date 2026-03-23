@@ -105,29 +105,6 @@ export interface SecurityLog {
   };
 }
 
-export interface TableTimeView {
-  year: number;
-  date: string;
-  time: string;
-  tables: {
-    id: number;
-    name: string;
-    table_number: string;
-    adjacent_tables: string[];
-    meetings: any[];
-    delegates: any[];
-    booth_owner?: any;
-  }[];
-  times_today: string[];
-  days: string[];
-  my_table: null;
-  layout: {
-    type: string;
-    rows: number;
-    columns: number;
-  };
-}
-
 export interface ChatMessage {
   id: number;
   content: string;
