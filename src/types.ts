@@ -112,6 +112,7 @@ export interface TableTimeView {
   tables: {
     id: number;
     name: string;
+    table_number: string;
     adjacent_tables: string[];
     meetings: any[];
     delegates: any[];
@@ -124,6 +125,22 @@ export interface TableTimeView {
     type: string;
     rows: number;
     columns: number;
+  };
+}
+
+export interface ChatMessage {
+  id: number;
+  content: string;
+  message_type: string;
+  image_url: string | null;
+  created_at: string;
+  edited_at?: string;
+  is_deleted?: boolean;
+  read_at?: string;
+  sender: {
+    id: number;
+    name: string;
+    avatar_url: string;
   };
 }
 

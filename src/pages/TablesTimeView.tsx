@@ -83,48 +83,86 @@ export default function TablesTimeView() {
     table.delegates?.some(d => (d.name?.toLowerCase() || '').includes(searchQuery.toLowerCase()))
   );
 
+  const stats = {
+    total: data?.tables?.length || 0,
+    busy: data?.tables?.filter(t => t.meetings?.length > 0).length || 0,
+    available: data?.tables?.filter(t => !t.meetings || t.meetings.length === 0).length || 0,
+    booths: data?.tables?.filter(t => t.booth_owner).length || 0
+  };
+
   return (
     <div className="space-y-8">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6">
         <div>
-          <h2 className="text-3xl font-bold text-zinc-900 tracking-tight">Tables Time View</h2>
-          <p className="text-zinc-500 mt-1">Monitor table assignments and meeting slots in real-time.</p>
+          <h2 className="text-4xl font-bold text-zinc-900 tracking-tight font-display">Tables Time View</h2>
+          <p className="text-zinc-500 mt-2 font-medium">Monitor table assignments and meeting slots in real-time.</p>
+        </div>
+        
+        {/* Stats Summary */}
+        <div className="flex items-center gap-3 overflow-x-auto pb-2 sm:pb-0 scrollbar-hide">
+          <div className="px-5 py-3 bg-white rounded-2xl border border-zinc-200 shadow-sm flex items-center gap-4 shrink-0">
+            <div className="w-10 h-10 bg-zinc-900 text-white rounded-xl flex items-center justify-center shadow-lg shadow-zinc-200">
+              <Grid3X3 className="w-5 h-5" />
+            </div>
+            <div>
+              <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Total</p>
+              <p className="text-lg font-bold text-zinc-900 leading-none mt-1">{stats.total}</p>
+            </div>
+          </div>
+          <div className="px-5 py-3 bg-white rounded-2xl border border-zinc-200 shadow-sm flex items-center gap-4 shrink-0">
+            <div className="w-10 h-10 bg-blue-500 text-white rounded-xl flex items-center justify-center shadow-lg shadow-blue-100">
+              <Users className="w-5 h-5" />
+            </div>
+            <div>
+              <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Busy</p>
+              <p className="text-lg font-bold text-zinc-900 leading-none mt-1">{stats.busy}</p>
+            </div>
+          </div>
+          <div className="px-5 py-3 bg-white rounded-2xl border border-zinc-200 shadow-sm flex items-center gap-4 shrink-0">
+            <div className="w-10 h-10 bg-emerald-500 text-white rounded-xl flex items-center justify-center shadow-lg shadow-emerald-100">
+              <Layout className="w-5 h-5" />
+            </div>
+            <div>
+              <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Available</p>
+              <p className="text-lg font-bold text-zinc-900 leading-none mt-1">{stats.available}</p>
+            </div>
+          </div>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
         {/* Filters Sidebar */}
         <div className="lg:col-span-1 space-y-6">
-          <div className="bg-white p-6 rounded-3xl border border-zinc-200 shadow-sm space-y-6">
+          <div className="bg-white p-8 rounded-[2.5rem] border border-zinc-200 shadow-sm space-y-8 premium-shadow">
             <div>
-              <label className="flex items-center gap-2 text-xs font-bold text-zinc-400 uppercase tracking-widest mb-3">
-                <Calendar className="w-3 h-3" />
+              <label className="flex items-center gap-3 text-[10px] font-bold text-zinc-400 uppercase tracking-[0.2em] mb-4">
+                <Calendar className="w-3.5 h-3.5" />
                 Select Date
               </label>
-              <div className="grid grid-cols-1 gap-2">
+              <div className="space-y-2">
                 {data?.days?.map((day) => (
                   <button
                     key={day}
                     onClick={() => {
                       setSelectedDate(day);
-                      setSelectedTime(''); // Reset time so it can be re-initialized for the new date
+                      setSelectedTime(''); 
                     }}
                     className={cn(
-                      "px-4 py-2.5 rounded-xl text-sm font-medium text-left transition-all",
+                      "w-full px-5 py-3.5 rounded-2xl text-sm font-bold text-left transition-all border",
                       selectedDate === day 
-                        ? "bg-zinc-900 text-white shadow-lg shadow-zinc-200" 
-                        : "bg-zinc-50 text-zinc-600 hover:bg-zinc-100"
+                        ? "bg-zinc-900 text-white shadow-xl shadow-zinc-200 border-zinc-900 translate-x-1" 
+                        : "bg-zinc-50 text-zinc-500 border-zinc-100 hover:bg-zinc-100 hover:text-zinc-900 hover:translate-x-1"
                     )}
                   >
-                    {new Date(day).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
+                    {new Date(day).toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}
                   </button>
                 ))}
               </div>
             </div>
 
-            <div>
-              <label className="flex items-center gap-2 text-xs font-bold text-zinc-400 uppercase tracking-widest mb-3">
-                <Clock className="w-3 h-3" />
+            <div className="pt-6 border-t border-zinc-100">
+              <label className="flex items-center gap-3 text-[10px] font-bold text-zinc-400 uppercase tracking-[0.2em] mb-4">
+                <Clock className="w-3.5 h-3.5" />
                 Select Time Slot
               </label>
               <div className="grid grid-cols-2 gap-2">
@@ -133,10 +171,10 @@ export default function TablesTimeView() {
                     key={time}
                     onClick={() => setSelectedTime(time)}
                     className={cn(
-                      "px-3 py-2 rounded-lg text-xs font-bold text-center transition-all",
+                      "px-3 py-3 rounded-xl text-[10px] font-black text-center transition-all border uppercase tracking-widest",
                       selectedTime === time 
-                        ? "bg-emerald-500 text-white shadow-lg shadow-emerald-100" 
-                        : "bg-zinc-50 text-zinc-600 hover:bg-zinc-100"
+                        ? "bg-emerald-500 text-white shadow-xl shadow-emerald-100 border-emerald-500 scale-105" 
+                        : "bg-zinc-50 text-zinc-500 border-zinc-100 hover:bg-zinc-100 hover:text-zinc-900 hover:scale-105"
                     )}
                   >
                     {formatTime(time)}
@@ -149,126 +187,153 @@ export default function TablesTimeView() {
 
         {/* Main Content */}
         <div className="lg:col-span-3 space-y-6">
-          <div className="bg-white p-4 rounded-3xl border border-zinc-200 shadow-sm flex items-center gap-4">
+          <div className="bg-white p-5 rounded-3xl border border-zinc-200 shadow-sm flex items-center gap-4">
             <div className="relative flex-1">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400" />
+              <Search className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-zinc-400" />
               <input
                 type="text"
-                placeholder="Search by table name or delegate..."
+                placeholder="Search by table name, company, or delegate..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-11 pr-4 py-3 bg-zinc-50 border border-zinc-200 rounded-2xl focus:ring-2 focus:ring-zinc-900 focus:border-transparent outline-none transition-all text-sm"
+                className="w-full pl-14 pr-6 py-4 bg-zinc-50 border border-zinc-200 rounded-2xl focus:ring-4 focus:ring-zinc-900/5 focus:border-zinc-900 outline-none transition-all font-medium text-zinc-900"
               />
             </div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
             {isLoading ? (
-              <div className="col-span-full flex items-center justify-center py-24">
-                <Loader2 className="w-10 h-10 animate-spin text-zinc-300" />
+              <div className="col-span-full flex flex-col items-center justify-center py-32">
+                <Loader2 className="w-12 h-12 animate-spin text-zinc-200" />
+                <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mt-6">Loading floor plan...</p>
               </div>
             ) : filteredTables?.length === 0 ? (
-              <div className="col-span-full p-24 bg-white border border-dashed border-zinc-200 rounded-3xl text-center text-zinc-500">
-                No tables found matching your search.
+              <div className="col-span-full p-32 bg-white border border-dashed border-zinc-200 rounded-[2.5rem] text-center">
+                <div className="w-20 h-20 bg-zinc-50 rounded-3xl flex items-center justify-center text-zinc-200 mx-auto mb-6">
+                  <Grid3X3 className="w-10 h-10" />
+                </div>
+                <p className="text-sm font-bold text-zinc-400">No tables found matching your search.</p>
               </div>
             ) : (
               filteredTables?.map((table, index) => (
                 <motion.div
                   key={table.id}
-                  initial={{ opacity: 0, scale: 0.95 }}
-                  animate={{ opacity: 1, scale: 1 }}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: index * 0.02 }}
-                  className="bg-white rounded-3xl border border-zinc-200 shadow-sm overflow-hidden group hover:shadow-md transition-all"
+                  className={cn(
+                    "bg-white rounded-[2rem] border shadow-sm overflow-hidden group hover:shadow-xl hover:shadow-zinc-200 transition-all duration-300",
+                    table.meetings?.length > 0 ? "border-blue-100" : "border-zinc-200"
+                  )}
                 >
-                  <div className="p-5 border-b border-zinc-100 bg-zinc-50/50 flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 bg-zinc-900 text-white rounded-lg flex items-center justify-center">
-                        <Layout className="w-4 h-4" />
+                  <div className={cn(
+                    "p-6 border-b flex items-center justify-between",
+                    table.meetings?.length > 0 ? "bg-blue-50/30 border-blue-50" : "bg-zinc-50/50 border-zinc-100"
+                  )}>
+                    <div className="flex items-center gap-4">
+                      <div className={cn(
+                        "w-10 h-10 rounded-xl flex items-center justify-center shadow-lg transition-transform group-hover:scale-110",
+                        table.meetings?.length > 0 ? "bg-blue-600 text-white shadow-blue-100" : "bg-zinc-900 text-white shadow-zinc-200"
+                      )}>
+                        <Layout className="w-5 h-5" />
                       </div>
-                      <h4 className="font-bold text-zinc-900">{table.name}</h4>
+                      <div>
+                        <h4 className="font-bold text-zinc-900 text-lg">{table.name}</h4>
+                        {table.table_number && (
+                          <p className="text-[10px] font-black text-blue-600 uppercase tracking-widest mt-0.5">
+                            Table: {table.table_number}
+                          </p>
+                        )}
+                      </div>
                     </div>
                     {table.booth_owner && (
-                      <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full uppercase tracking-wider">Booth</span>
+                      <div className="flex flex-col items-end">
+                        <span className="text-[9px] font-black text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-lg uppercase tracking-widest border border-emerald-100">Booth</span>
+                      </div>
                     )}
                   </div>
 
-                  <div className="p-5 space-y-6">
+                  <div className="p-6 space-y-6">
                     {table.meetings?.length > 0 ? (
                       table.meetings?.map((meeting: any, mIdx: number) => (
-                        <div key={mIdx} className="space-y-4">
-                          <div className="flex items-center gap-2 text-[10px] font-bold text-zinc-400 uppercase tracking-[0.2em]">
-                            <Users className="w-3 h-3" />
-                            Active Meeting
+                        <div key={mIdx} className="space-y-6">
+                          <div className="flex items-center gap-3">
+                            <div className="h-px flex-1 bg-zinc-100" />
+                            <div className="px-4 py-1.5 bg-zinc-100 rounded-full text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em]">
+                              Active Meeting
+                            </div>
+                            <div className="h-px flex-1 bg-zinc-100" />
                           </div>
                           
-                          <div className="flex flex-col gap-3">
+                          <div className="grid grid-cols-1 gap-4">
                             {/* Booker Side */}
-                            <div className="space-y-2">
-                              <div className="flex items-center gap-2 px-3 py-1 bg-blue-50 text-blue-600 rounded-full w-fit">
-                                <span className="text-[9px] font-bold uppercase tracking-widest">Booker</span>
+                            <div className="space-y-3">
+                              <div className="flex items-center justify-between">
+                                <span className="text-[10px] font-black text-blue-600 uppercase tracking-widest bg-blue-50 px-2.5 py-1 rounded-lg border border-blue-100">Booker</span>
+                                <Users className="w-3.5 h-3.5 text-blue-300" />
                               </div>
-                              <div className="space-y-1.5">
+                              <div className="space-y-2">
                                 {meeting.booker_team?.members?.map((member: any) => (
-                                  <div key={member.id} className="flex items-center gap-2 p-2.5 bg-zinc-50 rounded-xl border border-zinc-100 group-hover:bg-white transition-colors">
-                                    <div className="w-7 h-7 bg-white border border-zinc-100 rounded-lg flex items-center justify-center text-zinc-400 shadow-sm">
-                                      <User className="w-3.5 h-3.5" />
+                                  <div key={member.id} className="flex items-center gap-3 p-3 bg-zinc-50 rounded-2xl border border-zinc-100 group-hover:bg-white group-hover:border-blue-100 transition-all shadow-sm hover:shadow-md">
+                                    <div className="w-9 h-9 bg-white border border-zinc-100 rounded-xl flex items-center justify-center text-zinc-400 shadow-sm shrink-0">
+                                      <User className="w-4 h-4" />
                                     </div>
-                                    <div className="flex-1 min-w-0">
-                                      <p className="text-xs font-bold text-zinc-900 truncate">{member.name}</p>
-                                      <p className="text-[9px] font-medium text-zinc-400 truncate">{member.company?.name || 'Delegate'}</p>
+                                    <div className="min-w-0">
+                                      <p className="text-sm font-bold text-zinc-900 truncate">{member.name}</p>
+                                      <p className="text-[10px] font-bold text-zinc-400 truncate uppercase tracking-tight">{member.company?.name || 'Delegate'}</p>
                                     </div>
                                   </div>
                                 ))}
                               </div>
                             </div>
 
-                            <div className="flex items-center justify-center py-1">
-                              <div className="h-px flex-1 bg-zinc-100" />
-                              <div className="px-3 text-[10px] font-black text-zinc-300 uppercase tracking-tighter italic">VS</div>
-                              <div className="h-px flex-1 bg-zinc-100" />
+                            <div className="flex items-center justify-center py-2">
+                              <div className="w-10 h-10 rounded-full bg-zinc-900 flex items-center justify-center shadow-xl shadow-zinc-200 border-4 border-white z-10">
+                                <span className="text-[10px] font-black text-white italic">VS</span>
+                              </div>
                             </div>
 
                             {/* Target Side */}
-                            <div className="space-y-2">
-                              <div className="flex items-center gap-2 px-3 py-1 bg-purple-50 text-purple-600 rounded-full w-fit ml-auto">
-                                <span className="text-[9px] font-bold uppercase tracking-widest">Target</span>
+                            <div className="space-y-3">
+                              <div className="flex items-center justify-between flex-row-reverse">
+                                <span className="text-[10px] font-black text-purple-600 uppercase tracking-widest bg-purple-50 px-2.5 py-1 rounded-lg border border-purple-100">Target</span>
+                                <Users className="w-3.5 h-3.5 text-purple-300" />
                               </div>
-                              <div className="space-y-1.5">
+                              <div className="space-y-2">
                                 {meeting.target_team?.members ? (
                                   meeting.target_team.members.map((member: any) => (
-                                    <div key={member.id} className="flex items-center gap-2 p-2.5 bg-zinc-50 rounded-xl border border-zinc-100 group-hover:bg-white transition-colors flex-row-reverse text-right">
-                                      <div className="w-7 h-7 bg-white border border-zinc-100 rounded-lg flex items-center justify-center text-zinc-400 shadow-sm">
-                                        <User className="w-3.5 h-3.5" />
+                                    <div key={member.id} className="flex items-center gap-3 p-3 bg-zinc-50 rounded-2xl border border-zinc-100 group-hover:bg-white group-hover:border-purple-100 transition-all shadow-sm hover:shadow-md flex-row-reverse text-right">
+                                      <div className="w-9 h-9 bg-white border border-zinc-100 rounded-xl flex items-center justify-center text-zinc-400 shadow-sm shrink-0">
+                                        <User className="w-4 h-4" />
                                       </div>
-                                      <div className="flex-1 min-w-0">
-                                        <p className="text-xs font-bold text-zinc-900 truncate">{member.name}</p>
-                                        <p className="text-[9px] font-medium text-zinc-400 truncate">{member.company?.name || 'Delegate'}</p>
+                                      <div className="min-w-0">
+                                        <p className="text-sm font-bold text-zinc-900 truncate">{member.name}</p>
+                                        <p className="text-[10px] font-bold text-zinc-400 truncate uppercase tracking-tight">{member.company?.name || 'Delegate'}</p>
                                       </div>
                                     </div>
                                   ))
                                 ) : meeting.target_delegate ? (
-                                  <div className="flex items-center gap-2 p-2.5 bg-zinc-50 rounded-xl border border-zinc-100 group-hover:bg-white transition-colors flex-row-reverse text-right">
-                                    <div className="w-7 h-7 bg-white border border-zinc-100 rounded-lg flex items-center justify-center text-zinc-400 shadow-sm">
-                                      <User className="w-3.5 h-3.5" />
+                                  <div className="flex items-center gap-3 p-3 bg-zinc-50 rounded-2xl border border-zinc-100 group-hover:bg-white group-hover:border-purple-100 transition-all shadow-sm hover:shadow-md flex-row-reverse text-right">
+                                    <div className="w-9 h-9 bg-white border border-zinc-100 rounded-xl flex items-center justify-center text-zinc-400 shadow-sm shrink-0">
+                                      <User className="w-4 h-4" />
                                     </div>
-                                    <div className="flex-1 min-w-0">
-                                      <p className="text-xs font-bold text-zinc-900 truncate">{meeting.target_delegate.name}</p>
-                                      <p className="text-[9px] font-medium text-zinc-400 truncate">{meeting.target_delegate.company?.name || 'Delegate'}</p>
+                                    <div className="min-w-0">
+                                      <p className="text-sm font-bold text-zinc-900 truncate">{meeting.target_delegate.name}</p>
+                                      <p className="text-[10px] font-bold text-zinc-400 truncate uppercase tracking-tight">{meeting.target_delegate.company?.name || 'Delegate'}</p>
                                     </div>
                                   </div>
                                 ) : table.booth_owner ? (
-                                  <div className="flex items-center gap-2 p-2.5 bg-zinc-50 rounded-xl border border-zinc-100 group-hover:bg-white transition-colors flex-row-reverse text-right">
-                                    <div className="w-7 h-7 bg-white border border-zinc-100 rounded-lg flex items-center justify-center text-zinc-400 shadow-sm">
-                                      <Building2 className="w-3.5 h-3.5" />
+                                  <div className="flex items-center gap-3 p-3 bg-zinc-50 rounded-2xl border border-zinc-100 group-hover:bg-white group-hover:border-emerald-100 transition-all shadow-sm hover:shadow-md flex-row-reverse text-right">
+                                    <div className="w-9 h-9 bg-white border border-zinc-100 rounded-xl flex items-center justify-center text-emerald-500 shadow-sm shrink-0">
+                                      <Building2 className="w-4 h-4" />
                                     </div>
-                                    <div className="flex-1 min-w-0">
-                                      <p className="text-xs font-bold text-zinc-900 truncate">{table.booth_owner.name}</p>
-                                      <p className="text-[9px] font-medium text-zinc-400 truncate">Booth Host</p>
+                                    <div className="min-w-0">
+                                      <p className="text-sm font-bold text-zinc-900 truncate">{table.booth_owner.name}</p>
+                                      <p className="text-[10px] font-black text-emerald-500 truncate uppercase tracking-widest">Booth Host</p>
                                     </div>
                                   </div>
                                 ) : (
-                                  <div className="p-3 text-center bg-zinc-50 rounded-xl border border-dashed border-zinc-200">
-                                    <p className="text-[10px] font-bold text-zinc-300 uppercase tracking-widest">No Target Info</p>
+                                  <div className="p-6 text-center bg-zinc-50 rounded-[2rem] border border-dashed border-zinc-200">
+                                    <p className="text-[10px] font-black text-zinc-300 uppercase tracking-[0.2em]">No Target Info</p>
                                   </div>
                                 )}
                               </div>
@@ -277,11 +342,14 @@ export default function TablesTimeView() {
                         </div>
                       ))
                     ) : (
-                      <div className="py-12 flex flex-col items-center justify-center gap-3">
-                        <div className="w-12 h-12 bg-zinc-50 rounded-2xl flex items-center justify-center text-zinc-200 border border-zinc-100">
-                          <Layout className="w-6 h-6" />
+                      <div className="py-16 flex flex-col items-center justify-center gap-4">
+                        <div className="w-16 h-16 bg-zinc-50 rounded-[2rem] flex items-center justify-center text-zinc-200 border border-zinc-100 shadow-inner">
+                          <Layout className="w-8 h-8" />
                         </div>
-                        <p className="text-[10px] font-black text-zinc-300 uppercase tracking-[0.2em]">Table Available</p>
+                        <div className="text-center">
+                          <p className="text-[10px] font-black text-zinc-300 uppercase tracking-[0.3em]">Table Available</p>
+                          <p className="text-[9px] font-bold text-zinc-400 mt-1">Ready for next slot</p>
+                        </div>
                       </div>
                     )}
                   </div>
