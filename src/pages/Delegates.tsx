@@ -14,12 +14,14 @@ import {
   Edit2,
   Download,
   Send,
-  Calendar
+  Calendar,
+  LogIn
 } from 'lucide-react';
 import api from '../services/api';
 import type { Delegate, PaginatedResponse } from '../types';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../utils';
+import { useNavigate } from 'react-router-dom';
 
 export default function Delegates() {
   const [page, setPage] = useState(1);
@@ -31,7 +33,9 @@ export default function Delegates() {
   const [tempPassword, setTempPassword] = useState<string | null>(null);
   const [pushForm, setPushForm] = useState({ title: '', message: '' });
   const [isSendingPush, setIsSendingPush] = useState(false);
+  const [isImpersonating, setIsImpersonating] = useState<number | null>(null);
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
 
   const { data, isLoading, error } = useQuery<PaginatedResponse<Delegate, 'delegates'>>({
     queryKey: ['delegates', page, keyword, year],
@@ -47,6 +51,37 @@ export default function Delegates() {
       return response.data;
     },
   });
+
+  const impersonateMutation = useMutation({
+    mutationFn: async (id: number) => {
+      const response = await api.post(`/admin/delegates/${id}/login`);
+      return response.data;
+    },
+    onSuccess: (data) => {
+      if (data.token || data.access_token) {
+        localStorage.setItem('delegate_token', data.token || data.access_token);
+        if (data.user) {
+          localStorage.setItem('delegate_user', JSON.stringify(data.user));
+        }
+        navigate('/delegate-chat');
+      }
+    },
+    onMutate: (id) => {
+      setIsImpersonating(id);
+    },
+    onSettled: () => {
+      setIsImpersonating(null);
+    },
+    onError: (err: any) => {
+      alert(err.response?.data?.error || 'Failed to impersonate delegate.');
+    }
+  });
+
+  const handleImpersonate = (id: number) => {
+    if (confirm('Are you sure you want to login as this delegate?')) {
+      impersonateMutation.mutate(id);
+    }
+  };
 
   const resetPasswordMutation = useMutation({
     mutationFn: async (id: number) => {
@@ -249,7 +284,7 @@ export default function Delegates() {
                     </td>
                     <td className="px-8 py-6">
                       <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-zinc-50 rounded-xl border border-zinc-100">
-                        <span className="text-xs font-bold text-zinc-600">{delegate.company.name}</span>
+                        <span className="text-xs font-bold text-zinc-600">{delegate.company?.name}</span>
                       </div>
                     </td>
                     <td className="px-8 py-6">
@@ -273,6 +308,18 @@ export default function Delegates() {
                     </td>
                     <td className="px-8 py-6 text-right">
                       <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-all duration-300 translate-x-2 group-hover:translate-x-0">
+                        <button 
+                          onClick={() => handleImpersonate(delegate.id)}
+                          disabled={isImpersonating === delegate.id}
+                          className="p-2.5 text-zinc-400 hover:text-emerald-600 hover:bg-white hover:shadow-md rounded-xl transition-all"
+                          title="Login as Delegate"
+                        >
+                          {isImpersonating === delegate.id ? (
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                          ) : (
+                            <LogIn className="w-4 h-4" />
+                          )}
+                        </button>
                         <button 
                           onClick={() => setSelectedDelegate(delegate)}
                           className="p-2.5 text-zinc-400 hover:text-zinc-900 hover:bg-white hover:shadow-md rounded-xl transition-all"
@@ -386,7 +433,7 @@ export default function Delegates() {
                         <>
                           <h4 className="text-2xl font-bold text-zinc-900 font-display">{selectedDelegate.name}</h4>
                           <div className="inline-flex items-center gap-2 px-3 py-1 bg-zinc-200/50 rounded-lg mt-2">
-                            <span className="text-[10px] font-bold text-zinc-600 uppercase tracking-widest">{selectedDelegate.company.name}</span>
+                            <span className="text-[10px] font-bold text-zinc-600 uppercase tracking-widest">{selectedDelegate.company?.name}</span>
                           </div>
                         </>
                       )}

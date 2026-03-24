@@ -141,6 +141,35 @@ export interface DirectChatRoom {
   last_message_at: string;
 }
 
+export interface DelegateUser {
+  id: number;
+  name: string;
+  title: string;
+  company_name: string;
+  avatar_url: string;
+  connection_status?: string;
+}
+
+export interface DelegateChatRoom {
+  id: number;
+  other_delegate: DelegateUser;
+  last_message: string;
+  last_message_at: string;
+  unread_count: number;
+}
+
+export interface DelegateMessage {
+  id: number;
+  sender_id: number;
+  recipient_id: number;
+  content: string;
+  message_type: 'text' | 'image';
+  image_url?: string;
+  created_at: string;
+  read_at?: string;
+  is_deleted?: boolean;
+}
+
 export interface Notification {
   id: number;
   notification_type: string;

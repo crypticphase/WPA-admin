@@ -29,6 +29,7 @@ const navigation = [
   { name: 'Leave Types', href: '/leave-types', icon: Tags },
   { name: 'Group Chats', href: '/group-chats', icon: MessageSquare },
   { name: 'Direct Messages', href: '/direct-messages', icon: MessageCircle },
+  { name: 'Delegate Chat', href: '/delegate-chat', icon: MessageSquare, delegateOnly: true },
   { name: 'Audit Logs', href: '/audit-logs', icon: History },
   { name: 'Security Logs', href: '/security-logs', icon: ShieldAlert },
   { name: 'Notifications', href: '/notifications', icon: Bell },
@@ -43,8 +44,26 @@ export default function Layout() {
 
   const handleLogout = () => {
     localStorage.removeItem('admin_token');
+    localStorage.removeItem('delegate_token');
+    localStorage.removeItem('delegate_user');
     navigate('/login');
   };
+
+  const adminToken = localStorage.getItem('admin_token');
+  const delegateToken = localStorage.getItem('delegate_token');
+  const delegateUserJson = localStorage.getItem('delegate_user');
+  const delegateUser = delegateUserJson ? JSON.parse(delegateUserJson) : null;
+
+  const handleStopImpersonating = () => {
+    localStorage.removeItem('delegate_token');
+    localStorage.removeItem('delegate_user');
+    navigate('/delegates');
+  };
+
+  const filteredNavigation = navigation.filter(item => {
+    if (item.delegateOnly) return !!delegateToken;
+    return !!adminToken;
+  });
 
   return (
     <div className="min-h-screen bg-zinc-50 flex">
@@ -64,7 +83,7 @@ export default function Layout() {
         
         <nav className="flex-1 px-4 py-2 space-y-1 overflow-y-auto scrollbar-hide">
           <p className="px-4 py-2 text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Main Menu</p>
-          {navigation.map((item) => {
+          {filteredNavigation.map((item) => {
             const isActive = location.pathname === item.href;
             return (
               <Link
@@ -87,7 +106,32 @@ export default function Layout() {
         <div className="p-6 mt-auto space-y-4">
           <BaseUrlManager />
           
-          <div className="bg-zinc-50 rounded-3xl p-4 mb-4 border border-zinc-100">
+          {delegateUser && (
+            <div className="bg-emerald-50 rounded-3xl p-4 border border-emerald-100 relative group">
+              <button
+                onClick={handleStopImpersonating}
+                className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center shadow-lg opacity-0 group-hover:opacity-100 transition-opacity"
+                title="Stop Impersonating"
+              >
+                <X className="w-3 h-3" />
+              </button>
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-white rounded-xl border border-emerald-200 flex items-center justify-center overflow-hidden">
+                  {delegateUser.avatar_url ? (
+                    <img src={delegateUser.avatar_url} alt="" className="w-full h-full object-cover" />
+                  ) : (
+                    <Users className="w-5 h-5 text-emerald-400" />
+                  )}
+                </div>
+                <div className="min-w-0">
+                  <p className="text-xs font-bold text-emerald-900 truncate">{delegateUser.name}</p>
+                  <p className="text-[10px] text-emerald-600 font-medium uppercase tracking-widest">Impersonating</p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          <div className="bg-zinc-50 rounded-3xl p-4 border border-zinc-100">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 bg-white rounded-xl border border-zinc-200 flex items-center justify-center text-zinc-400">
                 <Users className="w-5 h-5" />
@@ -123,7 +167,30 @@ export default function Layout() {
       {isMobileMenuOpen && (
         <div className="lg:hidden fixed inset-0 z-40 bg-white pt-16">
           <nav className="p-4 space-y-2">
-            {navigation.map((item) => {
+            {delegateUser && (
+              <div className="bg-emerald-50 rounded-2xl p-4 border border-emerald-100 mb-4 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-white rounded-xl border border-emerald-200 flex items-center justify-center overflow-hidden">
+                    {delegateUser.avatar_url ? (
+                      <img src={delegateUser.avatar_url} alt="" className="w-full h-full object-cover" />
+                    ) : (
+                      <Users className="w-5 h-5 text-emerald-400" />
+                    )}
+                  </div>
+                  <div>
+                    <p className="text-xs font-bold text-emerald-900">{delegateUser.name}</p>
+                    <p className="text-[10px] text-emerald-600 font-bold uppercase tracking-widest">Impersonating</p>
+                  </div>
+                </div>
+                <button
+                  onClick={handleStopImpersonating}
+                  className="p-2 bg-red-100 text-red-600 rounded-lg"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            )}
+            {filteredNavigation.map((item) => {
               const isActive = location.pathname === item.href;
               return (
                 <Link

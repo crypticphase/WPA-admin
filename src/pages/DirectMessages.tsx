@@ -42,12 +42,12 @@ export default function DirectMessages() {
     delegate_a: any;
     delegate_b: any;
   }>({
-    queryKey: ['direct-messages', selectedRoom?.delegate_a.id, selectedRoom?.delegate_b.id],
+    queryKey: ['direct-messages', selectedRoom?.delegate_a?.id, selectedRoom?.delegate_b?.id],
     queryFn: async () => {
       const response = await api.get('/admin/messages/direct', {
         params: { 
-          delegate_a_id: selectedRoom?.delegate_a.id, 
-          delegate_b_id: selectedRoom?.delegate_b.id 
+          delegate_a_id: selectedRoom?.delegate_a?.id, 
+          delegate_b_id: selectedRoom?.delegate_b?.id 
         }
       });
       return response.data;
@@ -104,11 +104,11 @@ export default function DirectMessages() {
               </div>
             ) : (
               filteredRooms?.map((room) => {
-                const isSelected = selectedRoom?.delegate_a.id === room.delegate_a.id && 
-                                 selectedRoom?.delegate_b.id === room.delegate_b.id;
+                const isSelected = selectedRoom?.delegate_a?.id === room.delegate_a?.id && 
+                                 selectedRoom?.delegate_b?.id === room.delegate_b?.id;
                 return (
                   <button
-                    key={`${room.delegate_a.id}-${room.delegate_b.id}`}
+                    key={`${room.delegate_a?.id}-${room.delegate_b?.id}`}
                     onClick={() => setSelectedRoom(room)}
                     className={cn(
                       "w-full p-4 rounded-3xl border transition-all text-left group relative",
@@ -120,14 +120,14 @@ export default function DirectMessages() {
                     <div className="flex items-center gap-3 mb-3">
                       <div className="flex -space-x-3">
                         <div className="w-8 h-8 rounded-full border-2 border-white bg-zinc-100 flex items-center justify-center overflow-hidden">
-                          {room.delegate_a.avatar_url ? (
+                          {room.delegate_a?.avatar_url ? (
                             <img src={room.delegate_a.avatar_url} alt="" className="w-full h-full object-cover" />
                           ) : (
                             <User className="w-4 h-4 text-zinc-400" />
                           )}
                         </div>
                         <div className="w-8 h-8 rounded-full border-2 border-white bg-zinc-100 flex items-center justify-center overflow-hidden">
-                          {room.delegate_b.avatar_url ? (
+                          {room.delegate_b?.avatar_url ? (
                             <img src={room.delegate_b.avatar_url} alt="" className="w-full h-full object-cover" />
                           ) : (
                             <User className="w-4 h-4 text-zinc-400" />
@@ -136,10 +136,10 @@ export default function DirectMessages() {
                       </div>
                       <div className="min-w-0 flex-1">
                         <p className="text-xs font-bold truncate">
-                          {room.delegate_a.name} & {room.delegate_b.name}
+                          {room.delegate_a?.name} & {room.delegate_b?.name}
                         </p>
                         <p className={cn("text-[10px] truncate", isSelected ? "text-zinc-400" : "text-zinc-500")}>
-                          {room.delegate_a.company} / {room.delegate_b.company}
+                          {room.delegate_a?.company} / {room.delegate_b?.company}
                         </p>
                       </div>
                       {room.unread_count > 0 && (

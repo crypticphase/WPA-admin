@@ -15,6 +15,7 @@ import DirectMessages from './pages/DirectMessages';
 import Notifications from './pages/Notifications';
 import ConnectionRequests from './pages/ConnectionRequests';
 import Maintenance from './pages/Maintenance';
+import DelegateChat from './pages/DelegateChat';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -26,8 +27,10 @@ const queryClient = new QueryClient({
 });
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
-  const token = localStorage.getItem('admin_token');
-  if (!token) {
+  const adminToken = localStorage.getItem('admin_token');
+  const delegateToken = localStorage.getItem('delegate_token');
+  
+  if (!adminToken && !delegateToken) {
     return <Navigate to="/login" replace />;
   }
   return <>{children}</>;
@@ -54,6 +57,7 @@ export default function App() {
             <Route path="leave-types" element={<LeaveTypes />} />
             <Route path="group-chats" element={<GroupChats />} />
             <Route path="direct-messages" element={<DirectMessages />} />
+            <Route path="delegate-chat" element={<DelegateChat />} />
             <Route path="audit-logs" element={<AuditLogs />} />
             <Route path="security-logs" element={<SecurityLogs />} />
             <Route path="notifications" element={<Notifications />} />
