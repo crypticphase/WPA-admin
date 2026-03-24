@@ -152,7 +152,9 @@ export interface DelegateUser {
 
 export interface DelegateChatRoom {
   id: number;
-  other_delegate: DelegateUser;
+  other_delegate?: DelegateUser;
+  recipient?: DelegateUser;
+  sender?: DelegateUser;
   last_message: string;
   last_message_at: string;
   unread_count: number;

@@ -34,6 +34,10 @@ export default function DelegateChat() {
   const currentUserJson = localStorage.getItem('delegate_user');
   const currentUser = currentUserJson ? JSON.parse(currentUserJson) : null;
 
+  // Robust ID extraction
+  const getUserId = (user: any) => user?.delegate_id || user?.id || user?.uid;
+  const currentUserId = getUserId(currentUser);
+
   // 1. Fetch Delegates (2025)
   const { data: delegatesData, isLoading: isLoadingDelegates } = useQuery<{ delegates: DelegateUser[] }>({
     queryKey: ['delegates-2025', searchTerm],
@@ -169,17 +173,18 @@ export default function DelegateChat() {
           switch(data.type) {
             case "new_message":
               // Update conversation if it's the current one
-              const msgSenderId = data.message.sender_id || data.message.sender?.id;
-              const msgRecipientId = data.message.recipient_id || data.message.recipient?.id;
+              const msgSenderId = getUserId(data.message.sender) || data.message.sender_id;
+              const msgRecipientId = getUserId(data.message.recipient) || data.message.recipient_id;
               
-              if (selectedDelegate && (Number(msgSenderId) === Number(selectedDelegate.id) || Number(msgRecipientId) === Number(selectedDelegate.id))) {
-                queryClient.setQueryData(['delegate-conversation', selectedDelegate.id], (old: any) => {
+              // Use a functional update to ensure we have the latest selectedDelegate
+              queryClient.setQueriesData({ queryKey: ['delegate-conversation'] }, (old: any, query) => {
+                const queryDelegateId = query.queryKey[1];
+                if (!queryDelegateId) return old;
+
+                if (Number(msgSenderId) === Number(queryDelegateId) || Number(msgRecipientId) === Number(queryDelegateId)) {
                   if (!old) return old;
-                  // Append to the FIRST page (which contains the newest messages)
-                  // Note: API returns newest first in page.data
                   const newPages = [...old.pages];
                   if (newPages.length > 0) {
-                    // Check if message already exists
                     if (newPages.some(page => page.data.some((m: any) => m.id === data.message.id))) {
                       return old;
                     }
@@ -189,75 +194,67 @@ export default function DelegateChat() {
                     };
                   }
                   return { ...old, pages: newPages };
-                });
-                
-                // If we are the recipient, mark as read
-                if (Number(msgRecipientId) === Number(currentUser?.id)) {
-                  api.post('/messages/mark_as_read', { message_id: data.message.id }).catch(console.error);
                 }
+                return old;
+              });
+              
+              // If we are the recipient, mark as read
+              const isMeRecipient = Number(msgRecipientId) === Number(currentUser?.id) || Number(msgRecipientId) === Number(currentUser?.delegate_id);
+              if (isMeRecipient) {
+                api.post('/messages/mark_as_read', { message_id: data.message.id }).catch(console.error);
               }
               queryClient.invalidateQueries({ queryKey: ['delegate-rooms'] });
               break;
             case "message_read":
-              if (selectedDelegate) {
-                queryClient.setQueryData(['delegate-conversation', selectedDelegate.id], (old: any) => {
-                  if (!old) return old;
-                  return {
-                    ...old,
-                    pages: old.pages.map((page: any) => ({
-                      ...page,
-                      data: page.data.map((m: any) => m.id === data.message_id ? { ...m, read_at: data.read_at } : m)
-                    }))
-                  };
-                });
-              }
+              queryClient.setQueriesData({ queryKey: ['delegate-conversation'] }, (old: any) => {
+                if (!old) return old;
+                return {
+                  ...old,
+                  pages: old.pages.map((page: any) => ({
+                    ...page,
+                    data: page.data.map((m: any) => m.id === data.message_id ? { ...m, read_at: data.read_at } : m)
+                  }))
+                };
+              });
               break;
             case "bulk_read":
-              if (selectedDelegate) {
-                queryClient.setQueryData(['delegate-conversation', selectedDelegate.id], (old: any) => {
-                  if (!old) return old;
-                  return {
-                    ...old,
-                    pages: old.pages.map((page: any) => ({
-                      ...page,
-                      data: page.data.map((m: any) => data.message_ids.includes(m.id) ? { ...m, read_at: data.read_at } : m)
-                    }))
-                  };
-                });
-              }
+              queryClient.setQueriesData({ queryKey: ['delegate-conversation'] }, (old: any) => {
+                if (!old) return old;
+                return {
+                  ...old,
+                  pages: old.pages.map((page: any) => ({
+                    ...page,
+                    data: page.data.map((m: any) => data.message_ids.includes(m.id) ? { ...m, read_at: data.read_at } : m)
+                  }))
+                };
+              });
               break;
             case "message_updated":
-              if (selectedDelegate) {
-                queryClient.setQueryData(['delegate-conversation', selectedDelegate.id], (old: any) => {
-                  if (!old) return old;
-                  return {
-                    ...old,
-                    pages: old.pages.map((page: any) => ({
-                      ...page,
-                      data: page.data.map((m: any) => m.id === data.message_id ? { ...m, content: data.content, edited_at: data.edited_at } : m)
-                    }))
-                  };
-                });
-              }
+              queryClient.setQueriesData({ queryKey: ['delegate-conversation'] }, (old: any) => {
+                if (!old) return old;
+                return {
+                  ...old,
+                  pages: old.pages.map((page: any) => ({
+                    ...page,
+                    data: page.data.map((m: any) => m.id === data.message_id ? { ...m, content: data.content, edited_at: data.edited_at } : m)
+                  }))
+                };
+              });
               break;
             case "message_deleted":
-              if (selectedDelegate) {
-                queryClient.setQueryData(['delegate-conversation', selectedDelegate.id], (old: any) => {
-                  if (!old) return old;
-                  return {
-                    ...old,
-                    pages: old.pages.map((page: any) => ({
-                      ...page,
-                      data: page.data.map((m: any) => m.id === data.message_id ? { ...m, is_deleted: true } : m)
-                    }))
-                  };
-                });
-              }
+              queryClient.setQueriesData({ queryKey: ['delegate-conversation'] }, (old: any) => {
+                if (!old) return old;
+                return {
+                  ...old,
+                  pages: old.pages.map((page: any) => ({
+                    ...page,
+                    data: page.data.map((m: any) => m.id === data.message_id ? { ...m, is_deleted: true } : m)
+                  }))
+                };
+              });
               break;
             case "typing_start":
-              if (data.sender_id === selectedDelegate?.id) {
-                setTypingUsers(prev => ({ ...prev, [data.sender_id]: true }));
-              }
+              setTypingUsers(prev => ({ ...prev, [data.sender_id]: true }));
               break;
             case "typing_stop":
               setTypingUsers(prev => ({ ...prev, [data.sender_id]: false }));
@@ -272,7 +269,28 @@ export default function DelegateChat() {
       subscription.unsubscribe();
       cable.disconnect();
     };
-  }, [delegateToken, selectedDelegate, queryClient]);
+  }, [delegateToken, queryClient, currentUserId]);
+
+  // Actions: enter_room, leave_room, ping
+  useEffect(() => {
+    if (subscriptionRef.current && selectedDelegate) {
+      subscriptionRef.current.perform("enter_room", { recipient_id: selectedDelegate.id });
+    }
+    return () => {
+      if (subscriptionRef.current) {
+        subscriptionRef.current.perform("leave_room");
+      }
+    };
+  }, [selectedDelegate]);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (subscriptionRef.current) {
+        subscriptionRef.current.perform("ping");
+      }
+    }, 30000);
+    return () => clearInterval(interval);
+  }, []);
 
   // Typing indicator logic
   const typingTimeoutRef = useRef<any>(null);
@@ -406,40 +424,48 @@ export default function DelegateChat() {
             {roomsData && roomsData.length > 0 && (
               <div className="mb-4">
                 <p className="px-4 py-2 text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Recent Chats</p>
-                {roomsData.map((room) => (
-                  <button
-                    key={room.id}
-                    onClick={() => setSelectedDelegate(room.other_delegate)}
-                    className={cn(
-                      "w-full p-4 rounded-3xl border transition-all text-left mb-2",
-                      selectedDelegate?.id === room.other_delegate?.id 
-                        ? "bg-zinc-900 border-zinc-900 text-white shadow-lg" 
-                        : "bg-white border-zinc-100 hover:border-zinc-300 text-zinc-900 shadow-sm"
-                    )}
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-xl overflow-hidden bg-zinc-100 shrink-0">
-                        <img src={room.other_delegate?.avatar_url} alt="" className="w-full h-full object-cover" />
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center justify-between gap-2">
-                          <p className="text-xs font-bold truncate">{room.other_delegate?.name}</p>
-                          <span className={cn("text-[9px]", selectedDelegate?.id === room.other_delegate?.id ? "text-zinc-500" : "text-zinc-400")}>
-                            {new Date(room.last_message_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                          </span>
-                        </div>
-                        <p className={cn("text-[11px] truncate", selectedDelegate?.id === room.other_delegate?.id ? "text-zinc-400" : "text-zinc-500")}>
-                          {room.last_message}
-                        </p>
-                      </div>
-                      {room.unread_count > 0 && (
-                        <span className="bg-emerald-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">
-                          {room.unread_count}
-                        </span>
+                {roomsData.map((room) => {
+                  const otherDelegate = room.other_delegate || room.recipient || room.sender;
+                  // Skip if we can't find the other delegate or if it's somehow us
+                  if (!otherDelegate || Number(getUserId(otherDelegate)) === Number(currentUserId)) return null;
+
+                  const isSelected = selectedDelegate?.id === otherDelegate.id;
+
+                  return (
+                    <button
+                      key={room.id}
+                      onClick={() => setSelectedDelegate(otherDelegate)}
+                      className={cn(
+                        "w-full p-4 rounded-3xl border transition-all text-left mb-2",
+                        isSelected 
+                          ? "bg-zinc-900 border-zinc-900 text-white shadow-lg" 
+                          : "bg-white border-zinc-100 hover:border-zinc-300 text-zinc-900 shadow-sm"
                       )}
-                    </div>
-                  </button>
-                ))}
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-xl overflow-hidden bg-zinc-100 shrink-0">
+                          <img src={otherDelegate.avatar_url} alt="" className="w-full h-full object-cover" />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center justify-between gap-2">
+                            <p className="text-xs font-bold truncate">{otherDelegate.name}</p>
+                            <span className={cn("text-[9px]", isSelected ? "text-zinc-500" : "text-zinc-400")}>
+                              {new Date(room.last_message_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                            </span>
+                          </div>
+                          <p className={cn("text-[11px] truncate", isSelected ? "text-zinc-400" : "text-zinc-500")}>
+                            {room.last_message}
+                          </p>
+                        </div>
+                        {room.unread_count > 0 && (
+                          <span className="bg-emerald-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">
+                            {room.unread_count}
+                          </span>
+                        )}
+                      </div>
+                    </button>
+                  );
+                })}
               </div>
             )}
 
@@ -529,8 +555,8 @@ export default function DelegateChat() {
                       </div>
                     )}
                     {messagesData?.map((msg) => {
-                      const senderId = msg.sender_id || msg.sender?.id;
-                      const isMe = Number(senderId) === Number(currentUser?.id);
+                      const senderId = getUserId(msg.sender) || msg.sender_id;
+                      const isMe = Number(senderId) === Number(currentUser?.id) || Number(senderId) === Number(currentUser?.delegate_id);
                       return (
                         <div key={msg.id} className={cn(
                           "flex gap-3 max-w-[80%]",
@@ -553,7 +579,12 @@ export default function DelegateChat() {
                                   {msg.message_type === 'image' ? (
                                     <img src={msg.image_url} alt="" className="rounded-xl max-w-full" />
                                   ) : (
-                                    msg.content
+                                    <p>
+                                      {msg.content}
+                                      {msg.edited_at && !msg.is_deleted && (
+                                        <span className="text-[10px] opacity-50 ml-1">(แก้ไขแล้ว)</span>
+                                      )}
+                                    </p>
                                   )}
                                   {isMe && (
                                     <button
