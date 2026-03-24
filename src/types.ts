@@ -167,7 +167,11 @@ export interface DelegateMessage {
   image_url?: string;
   created_at: string;
   read_at?: string;
+  edited_at?: string;
+  deleted_at?: string;
   is_deleted?: boolean;
+  sender: { id: number; name: string; avatar_url?: string };
+  recipient: { id: number; name: string; avatar_url?: string };
 }
 
 export interface Notification {

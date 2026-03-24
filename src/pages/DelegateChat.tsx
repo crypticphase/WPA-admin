@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient, useInfiniteQuery } from '@tanstack/react-query';
 import { 
   MessageSquare, 
   Loader2,
@@ -56,20 +56,85 @@ export default function DelegateChat() {
     enabled: !!delegateToken
   });
 
-  // 3. Fetch Conversation
-  const { data: messagesData, isLoading: isLoadingMessages } = useQuery<DelegateMessage[]>({
+  // 3. Fetch Conversation (Infinite Scroll)
+  const { 
+    data: infiniteMessagesData, 
+    isLoading: isLoadingMessages,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage
+  } = useInfiniteQuery<{ data: DelegateMessage[], meta: { page: number, per: number, total_pages: number, total_count: number } }>({
     queryKey: ['delegate-conversation', selectedDelegate?.id],
-    queryFn: async () => {
+    queryFn: async ({ pageParam = 1 }) => {
       const response = await api.get(`/messages/conversation/${selectedDelegate?.id}`, {
-        params: { page: 1, per: 50 }
+        params: { page: pageParam, per: 30 }
       });
-      // API returns newest first, we need to reverse for display
-      return [...response.data].reverse();
+      return response.data; // { data: [], meta: {} }
+    },
+    initialPageParam: 1,
+    getNextPageParam: (lastPage) => {
+      if (lastPage.meta.page < lastPage.meta.total_pages) {
+        return lastPage.meta.page + 1;
+      }
+      return undefined;
     },
     enabled: !!selectedDelegate && !!delegateToken,
   });
 
-  // 4. Send Message Mutation
+  // Flatten and reverse messages for display
+  const messagesData = React.useMemo(() => {
+    if (!infiniteMessagesData) return [];
+    // Pages are [page1, page2, ...]. Each page has data: [newest...oldest]
+    // We want to show oldest at top, newest at bottom.
+    // So we reverse the whole flattened array.
+    const allMessages = infiniteMessagesData.pages.flatMap(page => page.data);
+    return [...allMessages].reverse();
+  }, [infiniteMessagesData]);
+
+  // 4. Mark Read Mutation
+  const markReadMutation = useMutation({
+    mutationFn: async (message_id: number) => {
+      return api.post('/messages/mark_as_read', { message_id });
+    }
+  });
+
+  const markAllReadMutation = useMutation({
+    mutationFn: async (message_ids: number[]) => {
+      return api.post('/messages/bulk_read', { message_ids });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['delegate-rooms'] });
+    }
+  });
+
+  const deleteMessageMutation = useMutation({
+    mutationFn: async (id: number) => {
+      return api.delete(`/messages/${id}`);
+    },
+    onSuccess: (_, id) => {
+      if (selectedDelegate) {
+        queryClient.setQueryData(['delegate-conversation', selectedDelegate.id], (old: any) => {
+          if (!old) return old;
+          return {
+            ...old,
+            pages: old.pages.map((page: any) => ({
+              ...page,
+              data: page.data.map((m: DelegateMessage) => m.id === id ? { ...m, is_deleted: true } : m)
+            }))
+          };
+        });
+      }
+    }
+  });
+
+  const typingMutation = useMutation({
+    mutationFn: async (is_typing: boolean) => {
+      if (!selectedDelegate) return;
+      return api.post('/messages/typing', { recipient_id: selectedDelegate.id, is_typing });
+    }
+  });
+
+  // 5. Send Message Mutation
   const sendMessageMutation = useMutation({
     mutationFn: async ({ content, image }: { content?: string, image?: string }) => {
       const payload: any = { recipient_id: selectedDelegate?.id };
@@ -105,17 +170,86 @@ export default function DelegateChat() {
             case "new_message":
               // Update conversation if it's the current one
               if (selectedDelegate && (data.message.sender_id === selectedDelegate.id || data.message.recipient_id === selectedDelegate.id)) {
-                queryClient.setQueryData(['delegate-conversation', selectedDelegate.id], (old: DelegateMessage[] | undefined) => {
-                  if (!old) return [data.message];
-                  // Check if message already exists (to avoid duplicates from mutation onSuccess)
-                  if (old.some(m => m.id === data.message.id)) return old;
-                  return [...old, data.message];
+                queryClient.setQueryData(['delegate-conversation', selectedDelegate.id], (old: any) => {
+                  if (!old) return old;
+                  // Append to the FIRST page (which contains the newest messages)
+                  // Note: API returns newest first in page.data
+                  const newPages = [...old.pages];
+                  if (newPages.length > 0) {
+                    // Check if message already exists
+                    if (newPages.some(page => page.data.some((m: any) => m.id === data.message.id))) {
+                      return old;
+                    }
+                    newPages[0] = {
+                      ...newPages[0],
+                      data: [data.message, ...newPages[0].data]
+                    };
+                  }
+                  return { ...old, pages: newPages };
                 });
+                
+                // If we are the recipient, mark as read
+                if (data.message.recipient_id === currentUser?.id) {
+                  api.post('/messages/mark_as_read', { message_id: data.message.id }).catch(console.error);
+                }
               }
               queryClient.invalidateQueries({ queryKey: ['delegate-rooms'] });
               break;
             case "message_read":
-              // Update read status
+              if (selectedDelegate) {
+                queryClient.setQueryData(['delegate-conversation', selectedDelegate.id], (old: any) => {
+                  if (!old) return old;
+                  return {
+                    ...old,
+                    pages: old.pages.map((page: any) => ({
+                      ...page,
+                      data: page.data.map((m: any) => m.id === data.message_id ? { ...m, read_at: data.read_at } : m)
+                    }))
+                  };
+                });
+              }
+              break;
+            case "bulk_read":
+              if (selectedDelegate) {
+                queryClient.setQueryData(['delegate-conversation', selectedDelegate.id], (old: any) => {
+                  if (!old) return old;
+                  return {
+                    ...old,
+                    pages: old.pages.map((page: any) => ({
+                      ...page,
+                      data: page.data.map((m: any) => data.message_ids.includes(m.id) ? { ...m, read_at: data.read_at } : m)
+                    }))
+                  };
+                });
+              }
+              break;
+            case "message_updated":
+              if (selectedDelegate) {
+                queryClient.setQueryData(['delegate-conversation', selectedDelegate.id], (old: any) => {
+                  if (!old) return old;
+                  return {
+                    ...old,
+                    pages: old.pages.map((page: any) => ({
+                      ...page,
+                      data: page.data.map((m: any) => m.id === data.message_id ? { ...m, content: data.content, edited_at: data.edited_at } : m)
+                    }))
+                  };
+                });
+              }
+              break;
+            case "message_deleted":
+              if (selectedDelegate) {
+                queryClient.setQueryData(['delegate-conversation', selectedDelegate.id], (old: any) => {
+                  if (!old) return old;
+                  return {
+                    ...old,
+                    pages: old.pages.map((page: any) => ({
+                      ...page,
+                      data: page.data.map((m: any) => m.id === data.message_id ? { ...m, is_deleted: true } : m)
+                    }))
+                  };
+                });
+              }
               break;
             case "typing_start":
               if (data.sender_id === selectedDelegate?.id) {
@@ -140,30 +274,59 @@ export default function DelegateChat() {
   // Typing indicator logic
   const typingTimeoutRef = useRef<any>(null);
   const handleTyping = () => {
-    if (!subscriptionRef.current || !selectedDelegate) return;
+    if (!selectedDelegate) return;
 
     if (!isTyping) {
       setIsTyping(true);
-      subscriptionRef.current.perform("typing_start", { recipient_id: selectedDelegate.id });
+      typingMutation.mutate(true);
     }
 
     if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
     
     typingTimeoutRef.current = setTimeout(() => {
       setIsTyping(false);
-      subscriptionRef.current.perform("typing_stop", { recipient_id: selectedDelegate.id });
+      typingMutation.mutate(false);
     }, 2000);
   };
 
+  // Infinite scroll up logic
+  const chatContainerRef = useRef<HTMLDivElement>(null);
+  const [shouldScrollToBottom, setShouldScrollToBottom] = useState(true);
+
+  const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
+    const container = e.currentTarget;
+    if (container.scrollTop === 0 && hasNextPage && !isFetchingNextPage) {
+      // Save current scroll height to maintain position after loading
+      const previousHeight = container.scrollHeight;
+      fetchNextPage().then(() => {
+        // After loading, adjust scroll to maintain position
+        setTimeout(() => {
+          container.scrollTop = container.scrollHeight - previousHeight;
+        }, 0);
+      });
+    }
+
+    // Check if user is near bottom to enable/disable auto-scroll
+    const isNearBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 100;
+    setShouldScrollToBottom(isNearBottom);
+  };
+
   const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    if (shouldScrollToBottom) {
+      messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    }
   };
 
   useEffect(() => {
-    if (messagesData) {
+    if (messagesData && selectedDelegate) {
       scrollToBottom();
+      // Mark all as read when opening conversation
+      const unreadMessages = messagesData.filter(m => !m.read_at && m.recipient_id === currentUser?.id);
+      if (unreadMessages.length > 0) {
+        markAllReadMutation.mutate(unreadMessages.map(m => m.id));
+      }
     }
-  }, [messagesData]);
+  }, [messagesData, selectedDelegate, currentUser?.id]);
 
   const handleSendMessage = (e: React.FormEvent) => {
     e.preventDefault();
@@ -346,13 +509,22 @@ export default function DelegateChat() {
               </div>
 
               {/* Messages */}
-              <div className="flex-1 overflow-y-auto p-8 space-y-6 custom-scrollbar min-h-0">
+              <div 
+                ref={chatContainerRef}
+                onScroll={handleScroll}
+                className="flex-1 overflow-y-auto p-8 space-y-6 custom-scrollbar min-h-0"
+              >
                 {isLoadingMessages ? (
                   <div className="flex items-center justify-center h-full">
                     <Loader2 className="w-10 h-10 animate-spin text-zinc-200" />
                   </div>
                 ) : (
                   <>
+                    {isFetchingNextPage && (
+                      <div className="flex justify-center py-4">
+                        <Loader2 className="w-6 h-6 animate-spin text-zinc-200" />
+                      </div>
+                    )}
                     {messagesData?.map((msg) => {
                       const isMe = msg.sender_id === currentUser?.id;
                       return (
@@ -365,17 +537,33 @@ export default function DelegateChat() {
                             isMe && "text-right"
                           )}>
                             <div className={cn(
-                              "p-4 rounded-2xl border text-sm leading-relaxed shadow-sm",
+                              "p-4 rounded-2xl border text-sm leading-relaxed shadow-sm group relative",
                               isMe 
                                 ? "bg-zinc-900 border-zinc-900 text-white rounded-tr-none" 
                                 : "bg-zinc-50 border-zinc-100 rounded-tl-none text-zinc-700"
                             )}>
                               {msg.is_deleted ? (
                                 <span className="italic opacity-50">Message deleted</span>
-                              ) : msg.message_type === 'image' ? (
-                                <img src={msg.image_url} alt="" className="rounded-xl max-w-full" />
                               ) : (
-                                msg.content
+                                <>
+                                  {msg.message_type === 'image' ? (
+                                    <img src={msg.image_url} alt="" className="rounded-xl max-w-full" />
+                                  ) : (
+                                    msg.content
+                                  )}
+                                  {isMe && (
+                                    <button
+                                      onClick={() => {
+                                        if (confirm('Delete this message?')) {
+                                          deleteMessageMutation.mutate(msg.id);
+                                        }
+                                      }}
+                                      className="absolute -left-8 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity p-1 text-zinc-400 hover:text-red-500"
+                                    >
+                                      <ShieldAlert className="w-4 h-4" />
+                                    </button>
+                                  )}
+                                </>
                               )}
                             </div>
                             <div className="flex items-center gap-2 px-1">

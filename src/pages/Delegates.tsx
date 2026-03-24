@@ -34,6 +34,8 @@ export default function Delegates() {
   const [pushForm, setPushForm] = useState({ title: '', message: '' });
   const [isSendingPush, setIsSendingPush] = useState(false);
   const [isImpersonating, setIsImpersonating] = useState<number | null>(null);
+  const [impersonatePassword, setImpersonatePassword] = useState('12345678');
+  const [showImpersonateModal, setShowImpersonateModal] = useState<Delegate | null>(null);
   const queryClient = useQueryClient();
   const navigate = useNavigate();
 
@@ -53,33 +55,43 @@ export default function Delegates() {
   });
 
   const impersonateMutation = useMutation({
-    mutationFn: async (id: number) => {
-      const response = await api.post(`/admin/delegates/${id}/login`);
+    mutationFn: async ({ email, password }: { email: string, password: string }) => {
+      const response = await api.post('/login', { email, password });
       return response.data;
     },
     onSuccess: (data) => {
-      if (data.token || data.access_token) {
-        localStorage.setItem('delegate_token', data.token || data.access_token);
+      const delegateToken = data.token || data.access_token;
+      if (delegateToken) {
+        localStorage.setItem('delegate_token', delegateToken);
         if (data.user) {
           localStorage.setItem('delegate_user', JSON.stringify(data.user));
         }
-        navigate('/delegate-chat');
+        navigate('/');
+      } else {
+        alert('No token received from server');
       }
     },
-    onMutate: (id) => {
-      setIsImpersonating(id);
+    onMutate: () => {
+      setIsImpersonating(showImpersonateModal?.id || null);
     },
     onSettled: () => {
       setIsImpersonating(null);
+      setShowImpersonateModal(null);
     },
     onError: (err: any) => {
-      alert(err.response?.data?.error || 'Failed to impersonate delegate.');
+      console.error('Impersonation error:', err);
+      const errorMessage = err.response?.data?.error || err.response?.data?.message || err.message || 'Failed to impersonate delegate.';
+      const status = err.response?.status;
+      alert(`Error (${status}): ${errorMessage}`);
     }
   });
 
-  const handleImpersonate = (id: number) => {
-    if (confirm('Are you sure you want to login as this delegate?')) {
-      impersonateMutation.mutate(id);
+  const handleImpersonate = () => {
+    if (showImpersonateModal) {
+      impersonateMutation.mutate({ 
+        email: showImpersonateModal.email, 
+        password: impersonatePassword 
+      });
     }
   };
 
@@ -309,7 +321,7 @@ export default function Delegates() {
                     <td className="px-8 py-6 text-right">
                       <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-all duration-300 translate-x-2 group-hover:translate-x-0">
                         <button 
-                          onClick={() => handleImpersonate(delegate.id)}
+                          onClick={() => setShowImpersonateModal(delegate)}
                           disabled={isImpersonating === delegate.id}
                           className="p-2.5 text-zinc-400 hover:text-emerald-600 hover:bg-white hover:shadow-md rounded-xl transition-all"
                           title="Login as Delegate"
@@ -585,6 +597,72 @@ export default function Delegates() {
 
       {/* Temp Password Modal */}
       <AnimatePresence>
+        {showImpersonateModal && (
+          <div className="fixed inset-0 z-[70] flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setShowImpersonateModal(null)}
+              className="absolute inset-0 bg-zinc-900/80 backdrop-blur-md"
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.9 }}
+              className="relative w-full max-w-sm bg-white rounded-3xl shadow-2xl p-8"
+            >
+              <div className="w-16 h-16 bg-zinc-100 text-zinc-900 rounded-2xl flex items-center justify-center mx-auto mb-6">
+                <LogIn className="w-8 h-8" />
+              </div>
+              <h3 className="text-2xl font-bold text-zinc-900 mb-2 text-center">Login as Delegate</h3>
+              <p className="text-zinc-500 mb-8 text-center">
+                Logging in as <span className="font-bold text-zinc-900">{showImpersonateModal.name}</span>
+              </p>
+              
+              <div className="space-y-4 mb-8">
+                <div>
+                  <label className="block text-[10px] font-bold text-zinc-400 uppercase tracking-widest mb-2 ml-1">
+                    Email Address
+                  </label>
+                  <div className="p-4 bg-zinc-50 rounded-2xl border border-zinc-100 text-sm font-bold text-zinc-400">
+                    {showImpersonateModal.email}
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-[10px] font-bold text-zinc-400 uppercase tracking-widest mb-2 ml-1">
+                    Password
+                  </label>
+                  <input
+                    type="password"
+                    value={impersonatePassword}
+                    onChange={(e) => setImpersonatePassword(e.target.value)}
+                    placeholder="Enter password"
+                    className="w-full px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-2xl text-sm font-medium outline-none focus:ring-4 focus:ring-zinc-900/5 focus:border-zinc-900 transition-all"
+                  />
+                </div>
+              </div>
+
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setShowImpersonateModal(null)}
+                  className="flex-1 py-4 bg-zinc-100 text-zinc-900 rounded-2xl font-bold hover:bg-zinc-200 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleImpersonate}
+                  disabled={impersonateMutation.isPending}
+                  className="flex-1 py-4 bg-zinc-900 text-white rounded-2xl font-bold hover:bg-zinc-800 transition-colors flex items-center justify-center gap-2"
+                >
+                  {impersonateMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <LogIn className="w-4 h-4" />}
+                  Login
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+
         {tempPassword && (
           <div className="fixed inset-0 z-[70] flex items-center justify-center p-4">
             <motion.div
