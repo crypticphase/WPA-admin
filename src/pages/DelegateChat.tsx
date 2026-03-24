@@ -169,7 +169,10 @@ export default function DelegateChat() {
           switch(data.type) {
             case "new_message":
               // Update conversation if it's the current one
-              if (selectedDelegate && (data.message.sender_id === selectedDelegate.id || data.message.recipient_id === selectedDelegate.id)) {
+              const msgSenderId = data.message.sender_id || data.message.sender?.id;
+              const msgRecipientId = data.message.recipient_id || data.message.recipient?.id;
+              
+              if (selectedDelegate && (Number(msgSenderId) === Number(selectedDelegate.id) || Number(msgRecipientId) === Number(selectedDelegate.id))) {
                 queryClient.setQueryData(['delegate-conversation', selectedDelegate.id], (old: any) => {
                   if (!old) return old;
                   // Append to the FIRST page (which contains the newest messages)
@@ -189,7 +192,7 @@ export default function DelegateChat() {
                 });
                 
                 // If we are the recipient, mark as read
-                if (data.message.recipient_id === currentUser?.id) {
+                if (Number(msgRecipientId) === Number(currentUser?.id)) {
                   api.post('/messages/mark_as_read', { message_id: data.message.id }).catch(console.error);
                 }
               }
@@ -526,7 +529,8 @@ export default function DelegateChat() {
                       </div>
                     )}
                     {messagesData?.map((msg) => {
-                      const isMe = msg.sender_id === currentUser?.id;
+                      const senderId = msg.sender_id || msg.sender?.id;
+                      const isMe = Number(senderId) === Number(currentUser?.id);
                       return (
                         <div key={msg.id} className={cn(
                           "flex gap-3 max-w-[80%]",
